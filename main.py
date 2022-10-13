@@ -7,6 +7,9 @@ import json
 
 
 def main():
+    # TODO: make sure I'm getting the right periods for mbank -> see settlement vs transaction date
+    # TODO: nicer way to automate reconciliment update
+
     hledger_trns = []
     unmatchedmbank_trns = set()
     mbank_trans_by_amount = defaultdict(list)
