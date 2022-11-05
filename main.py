@@ -4,9 +4,13 @@ from collections import defaultdict
 from typing import Dict, Any
 import hashlib
 import json
+import uuid
 
 
 def main():
+    # USE HTML EXPORT and delete everything expert core table
+    # TODO: automate this
+
     # TODO: make sure I'm getting the right periods for mbank -> see settlement vs transaction date
     # TODO: nicer way to automate reconciliment update
 
@@ -25,17 +29,30 @@ def main():
                 trn_id = row["txnidx"]
                 hledger_trns.append((float(row["amount"]), row["description"], trn_id))
 
-    with open("/home/allgreed/Downloads/bork") as csvfile:
-        spamreader = csv.DictReader(csvfile, delimiter=";")
-        for row in spamreader:
-            trn_id = hash_dict(row)
-            amount = float(row["kwota"].replace(",",".").replace(" ", ""))
-            desc = row["opis"]
+    with open("/home/allgreed/Downloads/bork.html") as f:
+        r_bankdata = f.read().strip()
+        regexp = r'<tr>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+><nobr>(.*)<\/nobr><\/td>\n\s+<td["\s\w=]+>.*<\/td>\n\s+<\/tr>'
+
+        for m in re.findall(regexp, r_bankdata, re.MULTILINE):
+            will_add = True
+            trn_id = uuid.uuid4()
+            amount = float(m[3].replace(",",".").replace(" ", ""))
+            desc = m[2]
             if "/" in desc:
-                desc = re.match(r"(.*)\/", desc).group(1).rstrip(" ")
+                fuj = desc.split("/")
+                desc = fuj[0].rstrip(" ")
+                other = fuj[1]
+                lm = re.search("DATA TRANSAKCJI: (.*)", other)
+                if lm:
+                    trn_effective_date = lm.group(1)
+                    # TODO: Paraemtrzie this!
+                    if trn_effective_date.startswith("2022-09"):
+                        will_add = False
+
             mbank_trans_by_amount[amount].append((desc, trn_id))
             mbank_trns_by_id[trn_id] = (amount, desc)
-            unmatchedmbank_trns.add(trn_id)
+            if will_add:
+                unmatchedmbank_trns.add(trn_id)
 
     duplicate_hledger_trns = defaultdict(list)
 
@@ -57,7 +74,7 @@ def main():
 
         else:
             # TODO: deal with those
-            print(ht)
+            print("unmatched", ht)
             pass
 
     # TODO: deal with this!
@@ -74,7 +91,7 @@ def main():
                 unmatchedmbank_trns.remove(matched_id)    
 
     # TODO: handle this!
-    print("==============")
+    print("=== mbank doesn't match hledger ====")
     for t in unmatchedmbank_trns:
         print(mbank_trns_by_id[t])
 
