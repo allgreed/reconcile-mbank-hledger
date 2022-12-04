@@ -8,8 +8,10 @@ import uuid
 
 
 def main():
-    # USE HTML EXPORT and delete everything expert core table
+    # export at least +2 days to get all the debit carts settlemetns!
+
     # TODO: automate this
+    # TODO: pay close attention to transcation with negative expenses -> they might be insanely wrong
 
     # TODO: make sure I'm getting the right periods for mbank -> see settlement vs transaction date
     # TODO: nicer way to automate reconciliment update
@@ -45,9 +47,18 @@ def main():
                 lm = re.search("DATA TRANSAKCJI: (.*)", other)
                 if lm:
                     trn_effective_date = lm.group(1)
-                    # TODO: Paraemtrzie this!
-                    if trn_effective_date.startswith("2022-09"):
+                    # TODO: extract parameter
+                    # TODO: months are not numbers
+                    current_month = 11
+                    previos_month = current_month - 1
+                    next_month = current_month + 1
+                    if trn_effective_date.startswith(f"2022-{previos_month}") or trn_effective_date.startswith(f"2022-{next_month}"):
                         will_add = False
+
+            assert m[0] == m[1], "operation date matches clearing date"
+            # TODO: parse
+            # TODO: exclude next month / include current month
+            date = m[0]
 
             mbank_trans_by_amount[amount].append((desc, trn_id))
             mbank_trns_by_id[trn_id] = (amount, desc)
