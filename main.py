@@ -51,12 +51,10 @@ def main():
             next_month = current_month + 1
 
             if "/" in desc:
-                fuj = desc.split("/")
-                desc = fuj[0].rstrip(" ")
-                other = fuj[1]
-                lm = re.search("DATA TRANSAKCJI: (.*)", other)
+                lm = re.search("DATA TRANSAKCJI: (.*)", desc)
                 if lm:
                     trn_effective_date = lm.group(1)
+                    
                     # TODO: dates are not strings
                     if trn_effective_date.startswith(f"2022-{previos_month}") or trn_effective_date.startswith(f"2022-{next_month}"):
                         will_add = False
@@ -115,6 +113,8 @@ def main():
     print("=== mbank doesn't match hledger ====")
     for t in unmatchedmbank_trns:
         print(mbank_trns_by_id[t])
+
+    # TODO: add some kind of success message when all is well
 
 
 def hash_dict(dictionary: Dict[str, Any]) -> str:
