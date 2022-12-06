@@ -21,7 +21,7 @@ def main():
     # TODO: make sure I'm getting the right periods for mbank -> see settlement vs transaction date
     # TODO: nicer way to automate reconciliment update
 
-    hledger_trns: list(HledgerTransaction) = []
+    hledger_transactions: list(HledgerTransaction) = []
 
     bleledger_trns = []
     unmatchedmbank_trns = set()
@@ -38,7 +38,7 @@ def main():
                 trn_id = row["txnidx"]
                 bleledger_trns.append((float(row["amount"]), row["description"], trn_id))
 
-                hledger_trns.append(HledgerTransaction(
+                hledger_transactions.append(HledgerTransaction(
                     description=row["description"],
                     ledger_id=row["txnidx"],
                     amount=row["amount"],
@@ -86,12 +86,11 @@ def main():
 
     duplicate_bleledger_trns = defaultdict(list)
 
-    for ht in bleledger_trns:
-        amount = ht[0]
-        match = mbank_trans_by_amount[amount]
+    for ht in hledger_transactions:
+        match = mbank_trans_by_amount[float(ht.amount)]
         if match:
             if len(match) > 1:
-                duplicate_bleledger_trns[amount].append(ht)
+                duplicate_bleledger_trns[float(ht.amount)].append(ht)
             else:
                 matched_id = match[0][1]
                 try:
