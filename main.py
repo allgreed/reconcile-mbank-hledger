@@ -5,7 +5,7 @@ from typing import Dict, Any
 import hashlib
 import json
 import uuid
-
+from typing import Optional, Dict, Any, Tuple
 
 from core import HledgerTransaction, MbankTransaction, Transaction
 
@@ -22,34 +22,29 @@ def main():
     # TODO: nicer way to automate reconciliment update
 
     hledger_transactions: list(HledgerTransaction) = []
+    mbank_transactions: list(MbankTransaction) = []
 
     unmatchedmbank_trns = set()
     mbank_trans_by_amount = defaultdict(list)
     mbank_trns_by_id = {}
 
     with open("/tmp/sep.csv") as csvfile:
-        spamreader = csv.DictReader(csvfile)
-        for row in spamreader:
-            if row["account"] == "assets:mbank:main":
-                if row["description"] == "Reconcilement":
-                    continue
+        for row in csv.DictReader(csvfile):
+            maybe_ht = parse_hledger_row(row)
+            if maybe_ht:
+                hledger_transactions.append(maybe_ht)
 
-                hledger_transactions.append(HledgerTransaction(
-                    description=row["description"],
-                    ledger_id=row["txnidx"],
-                    amount=row["amount"],
-                ))
 
     with open("/home/allgreed/Downloads/bork.html") as f:
         r_bankdata = f.read().strip()
         regexp = r'<tr>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+><nobr>(.*)<\/nobr><\/td>\n\s+<td["\s\w=]+>.*<\/td>\n\s+<\/tr>'
 
-        for m in re.findall(regexp, r_bankdata, re.MULTILINE):
+        for regexp_match in re.findall(regexp, r_bankdata, re.MULTILINE):
             will_add = True
             klopotliwe_rozliczenie = False
             trn_id = uuid.uuid4()
-            amount = float(m[3].replace(",",".").replace(" ", ""))
-            desc = m[2]
+            amount = float(regexp_match[3].replace(",",".").replace(" ", ""))
+            desc = regexp_match[2]
 
             # TODO: extract parameter
             # TODO: months are not numbers
@@ -68,8 +63,8 @@ def main():
                     else:
                         klopotliwe_rozliczenie = True
 
-            assert m[0] == m[1], "operation date matches clearing date"
-            date = m[0]
+            assert regexp_match[0] == regexp_match[1], "operation date matches clearing date"
+            date = regexp_match[0]
 
             # TODO: dates are not strings
             if date.startswith(f"2022-{previos_month}") or date.startswith(f"2022-{next_month}"):
@@ -79,6 +74,8 @@ def main():
                 mbank_trans_by_amount[amount].append((desc, trn_id))
                 mbank_trns_by_id[trn_id] = (amount, desc)
                 unmatchedmbank_trns.add(trn_id)
+
+            mbank_transactions.append(parse_mbank_row(regexp_match))
 
     duplicate_bleledger_trns = defaultdict(list)
 
@@ -121,6 +118,37 @@ def main():
         print(mbank_trns_by_id[t])
 
     # TODO: add some kind of success message when all is well
+
+
+def parse_hledger_row(row: Dict[str, Any]) -> Optional[HledgerTransaction]:
+    if row["account"] == "assets:mbank:main":
+        if row["description"] == "Reconcilement":
+            return
+
+        return HledgerTransaction(
+            description=row["description"],
+            ledger_id=row["txnidx"],
+            amount=row["amount"],
+        )
+
+
+def parse_mbank_row(regexp_match: Tuple[str, str, str, str]) -> MbankTransaction:
+    description = regexp_match[2]
+
+    bank_operation_date = regexp_match[0]
+    bank_clearing_date = regexp_match[1]
+
+    assert bank_operation_date == bank_clearing_date
+    bank_date = bank_operation_date
+
+    rc_date_match = re.search("DATA TRANSAKCJI: (.*)", description)
+    real_clearing_date = rc_date_match.group(1) if rc_date_match else None
+
+    return MbankTransaction(
+        amount=regexp_match[3].replace(",",".").replace(" ", ""),
+        description=description,
+        date=real_clearing_date or bank_date,
+    )
 
 
 def hash_dict(dictionary: Dict[str, Any]) -> str:

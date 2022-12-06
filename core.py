@@ -1,6 +1,7 @@
-from enum import Enum
 from decimal import Decimal
+from typing import Optional
 
+from datetime import date
 from pydantic.dataclasses import dataclass
 from pydantic import PositiveInt, constr
 
@@ -13,7 +14,7 @@ class Transaction:
 
 @dataclass
 class MbankTransaction(Transaction):
-    pass
+    date: date
 
 
 @dataclass
