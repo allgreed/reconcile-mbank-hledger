@@ -11,7 +11,7 @@ def main():
     # export at least +2 days to get all the debit carts settlemetns!
     # assumption: reconcilement happens on monthly basis
 
-    # TODO: refactor into domain
+    # TODO: refactor into domain code
 
     # TODO: pay close attention to transcation with negative expenses -> they might be insanely wrong
 

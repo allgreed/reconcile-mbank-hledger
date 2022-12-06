@@ -1,1 +1,0 @@
-ls main.py /tmp/sep.csv ~/Downloads/bork.html | entr -c python3 main.py -c
