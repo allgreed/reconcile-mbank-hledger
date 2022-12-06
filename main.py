@@ -23,7 +23,6 @@ def main():
 
     hledger_transactions: list(HledgerTransaction) = []
 
-    bleledger_trns = []
     unmatchedmbank_trns = set()
     mbank_trans_by_amount = defaultdict(list)
     mbank_trns_by_id = {}
@@ -34,9 +33,6 @@ def main():
             if row["account"] == "assets:mbank:main":
                 if row["description"] == "Reconcilement":
                     continue
-
-                trn_id = row["txnidx"]
-                bleledger_trns.append((float(row["amount"]), row["description"], trn_id))
 
                 hledger_transactions.append(HledgerTransaction(
                     description=row["description"],
