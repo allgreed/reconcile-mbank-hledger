@@ -7,6 +7,9 @@ import json
 import uuid
 
 
+from core import HledgerTransaction, MbankTransaction, Transaction
+
+
 def main():
     # export at least +2 days to get all the debit carts settlemetns!
     # assumption: reconcilement happens on monthly basis
@@ -18,7 +21,9 @@ def main():
     # TODO: make sure I'm getting the right periods for mbank -> see settlement vs transaction date
     # TODO: nicer way to automate reconciliment update
 
-    hledger_trns = []
+    hledger_trns: list(HledgerTransaction) = []
+
+    bleledger_trns = []
     unmatchedmbank_trns = set()
     mbank_trans_by_amount = defaultdict(list)
     mbank_trns_by_id = {}
@@ -31,7 +36,13 @@ def main():
                     continue
 
                 trn_id = row["txnidx"]
-                hledger_trns.append((float(row["amount"]), row["description"], trn_id))
+                bleledger_trns.append((float(row["amount"]), row["description"], trn_id))
+
+                hledger_trns.append(HledgerTransaction(
+                    description=row["description"],
+                    ledger_id=row["txnidx"],
+                    amount=row["amount"],
+                ))
 
     with open("/home/allgreed/Downloads/bork.html") as f:
         r_bankdata = f.read().strip()
@@ -73,14 +84,14 @@ def main():
                 mbank_trns_by_id[trn_id] = (amount, desc)
                 unmatchedmbank_trns.add(trn_id)
 
-    duplicate_hledger_trns = defaultdict(list)
+    duplicate_bleledger_trns = defaultdict(list)
 
-    for ht in hledger_trns:
+    for ht in bleledger_trns:
         amount = ht[0]
         match = mbank_trans_by_amount[amount]
         if match:
             if len(match) > 1:
-                duplicate_hledger_trns[amount].append(ht)
+                duplicate_bleledger_trns[amount].append(ht)
             else:
                 matched_id = match[0][1]
                 try:
@@ -97,7 +108,7 @@ def main():
             pass
 
     # TODO: deal with this!
-    for amount, cases in  duplicate_hledger_trns.items():
+    for amount, cases in  duplicate_bleledger_trns.items():
         match = mbank_trans_by_amount[amount]
         if len(cases) != len(match):
             # TODO: print a header for this

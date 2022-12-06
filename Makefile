@@ -1,4 +1,4 @@
-SOURCES := main.py
+SOURCES := main.py main_test.py core.py
 INPUTS := ~/Downloads/bork.html /tmp/sep.csv
 ENTRYPOINT_DEPS := $(SOURCES) $(INPUTS)
 
@@ -6,8 +6,10 @@ ENTRYPOINT_DEPS := $(SOURCES) $(INPUTS)
 # ###############
 .PHONY: container run lint test watch
 
+enter_command = ls $(ENTRYPOINT_DEPS) | entr -c make --no-print-directory $(1)
+
 watch:
-	ls $(INPUTS) | entr -c make --no-print-directory run
+	$(call enter_command,run)
 
 run: setup ## run the app
 	python3 main.py
@@ -16,7 +18,10 @@ lint: setup ## run static analysis
 	@echo "Not implemented"; false
 
 test: setup ## run all tests
-	@echo "Not implemented"; false
+	python3 -m pytest
+
+iterate: 
+	$(call enter_command,test)
 
 container: build ## create container
 	#docker build -t lmap .

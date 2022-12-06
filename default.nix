@@ -8,6 +8,7 @@ let
   pkgs = import nixpkgs { config = {}; };
   pythonPkgs = python-packages: with python-packages; [
     ptpython # nicer repl
+    pydantic
 
     # dev
     pytest
