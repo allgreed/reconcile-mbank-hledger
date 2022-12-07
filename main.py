@@ -5,7 +5,7 @@ from typing import Dict, Any
 import hashlib
 import json
 import uuid
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 
 from core import HledgerTransaction, MbankTransaction, Transaction
 
@@ -21,8 +21,8 @@ def main():
     # TODO: make sure I'm getting the right periods for mbank -> see settlement vs transaction date
     # TODO: nicer way to automate reconciliment update
 
-    hledger_transactions: list(HledgerTransaction) = []
-    mbank_transactions: list(MbankTransaction) = []
+    hledger_transactions: List[HledgerTransaction] = []
+    mbank_transactions: List[MbankTransaction] = []
 
     unmatchedmbank_trns = set()
     mbank_trans_by_amount = defaultdict(list)
@@ -149,16 +149,6 @@ def parse_mbank_row(regexp_match: Tuple[str, str, str, str]) -> MbankTransaction
         description=description,
         date=real_clearing_date or bank_date,
     )
-
-
-def hash_dict(dictionary: Dict[str, Any]) -> str:
-    """from: https://stackoverflow.com/a/67438471/9134286"""
-    dhash = hashlib.md5()
-    # We need to sort arguments so {'a': 1, 'b': 2} is
-    # the same as {'b': 2, 'a': 1}
-    encoded = json.dumps(dictionary, sort_keys=True).encode()
-    dhash.update(encoded)
-    return dhash.hexdigest()
 
 
 if __name__ == "__main__":
