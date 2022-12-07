@@ -6,12 +6,49 @@ let
     # obtain via `git ls-remote https://github.com/nixos/nixpkgs nixos-unstable`
   };
   pkgs = import nixpkgs { config = {}; };
+  ropemode = with pkgs.python39Packages; buildPythonPackage rec {
+    pname = "ropemode";
+    version = "0.6.1";
+
+    src = fetchPypi{
+      inherit version;
+      inherit pname;
+      sha256 = "sha256:0w04vm25f729f95bsimq886aamqf2jbzndf41khmiqqvywnx5f4r";
+    };
+
+    # TODO: See if I can enable this
+    doCheck = false;
+
+    buildInputs = [ rope ];
+  };
+  ropevim = with pkgs.python39Packages; buildPythonPackage rec {
+    pname = "ropevim";
+    version = "0.8.1";
+
+    src = fetchPypi{
+      inherit version;
+      inherit pname;
+      sha256 = "sha256:099pcbyxmyxi60bp4r8vkk04vvr37vy5nzpvgir62kz5kgsdr5bp";
+    };
+
+    # TODO: See if I can enable this
+    doCheck = false;
+
+    buildInputs = [ rope ropemode ];
+  };
+  
   pythonPkgs = python-packages: with python-packages; [
-    ptpython # nicer repl
     pydantic
+
+    # TODO: propagate build inputs I guess
+    #ropemode
+    #rope
 
     # dev
     pytest
+    ptpython
+    #ropevim
+    #pynvim
   ];
   pythonCore = pkgs.python39;
   myPython = pythonCore.withPackages pythonPkgs;
@@ -23,5 +60,6 @@ pkgs.mkShell {
     git
     gnumake
     myPython
+    python-language-server
   ];
 }
