@@ -21,6 +21,7 @@ def main(reconciliation_month=11, hledger_csv_statement="/tmp/sep.csv", mbank_ht
     unbalanced_matches = find_unbalanced_matches(mbank_transactions, hledger_transactions)
 
     if unbalanced_matches:
+        print(unbalanced_matches)
         ...
         # display the problem sensibly
 
