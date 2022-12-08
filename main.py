@@ -66,10 +66,7 @@ def legacy_find_unbalanced_matches(mbank_transactions, hledger_transactions):
                 try:
                     unmatchedmbank_trns.remove(corresponding_transactions[0])
                 except KeyError:
-                    # TODO: deal with double matching form hledger to mbank
-                    # so: hledger has two trns with amount X, while mbank has only one with amout X
-                    # print("A!", ht) 
-                    pass
+                    unbalanced_matches.append(TransactionsMatch(hledger_transactions={ht}, mbank_transactions=set(corresponding_transactions)))
 
         else:
             unbalanced_matches.append(TransactionsMatch(hledger_transactions=[ht]))
@@ -88,7 +85,7 @@ def legacy_find_unbalanced_matches(mbank_transactions, hledger_transactions):
 
     # this is a hack!
     if unmatchedmbank_trns:
-        unbalanced_matches.append(TransactionsMatch(mbank_transactions=list(unmatchedmbank_trns)))
+        unbalanced_matches.append(TransactionsMatch(mbank_transactions=unmatchedmbank_trns))
 
     return unbalanced_matches
 
