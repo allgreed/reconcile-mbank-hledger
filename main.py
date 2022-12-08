@@ -19,7 +19,6 @@ def main(reconciliation_month=11, hledger_csv_statement="/tmp/sep.csv", mbank_ht
         mbank_transactions = [t for t in read_mbank_transactions(f) if t.accounting_date.month == reconciliation_month]
 
     unbalanced_matches = find_unbalanced_matches(mbank_transactions, hledger_transactions)
-    assert unbalanced_matches == legacy_find_unbalanced_matches(mbank_transactions, hledger_transactions)
 
     if unbalanced_matches:
         ...
@@ -43,51 +42,6 @@ def find_unbalanced_matches(mbank_transactions: Sequence[MbankTransaction], hled
     assert all(m.is_correct() for m in matches)
 
     return [m for m in matches if not m.is_balanced]
-
-
-def legacy_find_unbalanced_matches(mbank_transactions, hledger_transactions):
-    unmatchedmbank_trns = set()
-    mbank_trans_by_amount = defaultdict(list)
-    mbank_trns_by_id = {}
-    for t in mbank_transactions:
-        mbank_trans_by_amount[t.amount].append(t)
-        mbank_trns_by_id[id(t)] = (t)
-        unmatchedmbank_trns.add(t)
-
-    unbalanced_matches = []
-
-    duplicate_bleledger_trns_by_amount = defaultdict(list)
-    for ht in hledger_transactions:
-        corresponding_transactions = mbank_trans_by_amount[ht.amount]
-        if corresponding_transactions:
-            if len(corresponding_transactions) > 1:
-                duplicate_bleledger_trns_by_amount[ht.amount].append(ht)
-            else:
-                try:
-                    unmatchedmbank_trns.remove(corresponding_transactions[0])
-                except KeyError:
-                    unbalanced_matches.append(TransactionsMatch(hledger_transactions={ht}, mbank_transactions=set(corresponding_transactions)))
-
-        else:
-            unbalanced_matches.append(TransactionsMatch(hledger_transactions=[ht]))
-
-    # TODO: deal with this!
-    for amount, cases in  duplicate_bleledger_trns_by_amount.items():
-        matchz = mbank_trans_by_amount[amount]
-        if len(cases) != len(matchz):
-            m = TransactionsMatch()
-            m.hledger_transactions = cases
-            m.mbank_transactions = matchz
-            unbalanced_matches.append(m)
-        else:
-            for m in matchz:
-                unmatchedmbank_trns.remove(m)    
-
-    # this is a hack!
-    if unmatchedmbank_trns:
-        unbalanced_matches.append(TransactionsMatch(mbank_transactions=unmatchedmbank_trns))
-
-    return unbalanced_matches
 
 
 if __name__ == "__main__":
