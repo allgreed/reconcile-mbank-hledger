@@ -36,47 +36,7 @@ def main():
 
 
     with open("/home/allgreed/Downloads/bork.html") as f:
-        r_bankdata = f.read().strip()
-        regexp = r'<tr>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+><nobr>(.*)<\/nobr><\/td>\n\s+<td["\s\w=]+>.*<\/td>\n\s+<\/tr>'
-
-
-        for regexp_match in re.findall(regexp, r_bankdata, re.MULTILINE):
-            will_add = True
-            klopotliwe_rozliczenie = False
-            trn_id = uuid.uuid4()
-            amount = float(regexp_match[3].replace(",",".").replace(" ", ""))
-            desc = regexp_match[2]
-
-            # TODO: extract parameter
-            # TODO: months are not numbers
-            current_month = 11
-            previos_month = current_month - 1
-            next_month = current_month + 1
-
-            if "/" in desc:
-                lm = re.search("DATA TRANSAKCJI: (.*)", desc)
-                if lm:
-                    trn_effective_date = lm.group(1)
-                    
-                    # TODO: dates are not strings
-                    if trn_effective_date.startswith(f"2022-{previos_month}") or trn_effective_date.startswith(f"2022-{next_month}"):
-                        will_add = False
-                    else:
-                        klopotliwe_rozliczenie = True
-
-            assert regexp_match[0] == regexp_match[1], "operation date matches clearing date"
-            date = regexp_match[0]
-
-            # TODO: dates are not strings
-            if date.startswith(f"2022-{previos_month}") or date.startswith(f"2022-{next_month}"):
-                will_add = klopotliwe_rozliczenie
-
-            if will_add:
-                mbank_trans_by_amount[amount].append((desc, trn_id))
-                mbank_trns_by_id[trn_id] = (amount, desc)
-                unmatchedmbank_trns.add(trn_id)
-            
-            #####
+        for regexp_match in re.findall(MAGIC_MBANK_STATEMENT_REGEXP, f.read().strip(), re.MULTILINE):
             t = parse_mbank_chunck(regexp_match)
             
             # TODO: refactor
@@ -92,14 +52,19 @@ def main():
             if first_of_this_month <= t.accounting_date < first_of_next_month:
                 mbank_transactions.append(t)
 
+                # TODO: deloop this part
+                mbank_trans_by_amount[t.amount].append((t.description, id(t)))
+                mbank_trns_by_id[id(t)] = (t.amount, t.description)
+                unmatchedmbank_trns.add(id(t))
+
 
     duplicate_bleledger_trns_by_amount = defaultdict(list)
 
     for ht in hledger_transactions:
-        corresponding_transaction = mbank_trans_by_amount[float(ht.amount)]
+        corresponding_transaction = mbank_trans_by_amount[ht.amount]
         if corresponding_transaction:
             if len(corresponding_transaction) > 1:
-                duplicate_bleledger_trns_by_amount[float(ht.amount)].append(ht)
+                duplicate_bleledger_trns_by_amount[ht.amount].append(ht)
             else:
                 # corresponding_transaction_id = id(corresponding_transaction)
                 corresponding_transaction_id = corresponding_transaction[0][1]
@@ -147,6 +112,9 @@ def parse_hledger_chunck(row: Dict[str, Any]) -> Optional[HledgerTransaction]:
             ledger_id=row["txnidx"],
             amount=row["amount"],
         )
+
+
+MAGIC_MBANK_STATEMENT_REGEXP = r'<tr>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+><nobr>(.*)<\/nobr><\/td>\n\s+<td["\s\w=]+>.*<\/td>\n\s+<\/tr>'
 
 
 def parse_mbank_chunck(regexp_match: Tuple[str, str, str, str]) -> MbankTransaction:
