@@ -14,7 +14,7 @@ class Transaction:
 
 @dataclass
 class MbankTransaction(Transaction):
-    date: date
+    accounting_date: date
 
 
 @dataclass

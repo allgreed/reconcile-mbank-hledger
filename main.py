@@ -30,7 +30,7 @@ def main():
 
     with open("/tmp/sep.csv") as csvfile:
         for row in csv.DictReader(csvfile):
-            maybe_ht = parse_hledger_row(row)
+            maybe_ht = parse_hledger_chunck(row)
             if maybe_ht:
                 hledger_transactions.append(maybe_ht)
 
@@ -38,6 +38,7 @@ def main():
     with open("/home/allgreed/Downloads/bork.html") as f:
         r_bankdata = f.read().strip()
         regexp = r'<tr>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+><nobr>(.*)<\/nobr><\/td>\n\s+<td["\s\w=]+>.*<\/td>\n\s+<\/tr>'
+
 
         for regexp_match in re.findall(regexp, r_bankdata, re.MULTILINE):
             will_add = True
@@ -74,20 +75,36 @@ def main():
                 mbank_trans_by_amount[amount].append((desc, trn_id))
                 mbank_trns_by_id[trn_id] = (amount, desc)
                 unmatchedmbank_trns.add(trn_id)
+            
+            #####
+            t = parse_mbank_chunck(regexp_match)
+            
+            # TODO: refactor
+            from datetime import date
+            # TODO: extract parameter
+            reconciliation_month = 11
+            reconciliation_year = 2022
 
-            mbank_transactions.append(parse_mbank_row(regexp_match))
+            first_of_this_month = date(year=reconciliation_year, month=reconciliation_month, day=1)
+            # TODO: that's not true, the year can roll over with the month
+            first_of_next_month = date(year=reconciliation_year, month=reconciliation_month + 1, day=1)
 
-    duplicate_bleledger_trns = defaultdict(list)
+            if first_of_this_month <= t.accounting_date < first_of_next_month:
+                mbank_transactions.append(t)
+
+
+    duplicate_bleledger_trns_by_amount = defaultdict(list)
 
     for ht in hledger_transactions:
-        match = mbank_trans_by_amount[float(ht.amount)]
-        if match:
-            if len(match) > 1:
-                duplicate_bleledger_trns[float(ht.amount)].append(ht)
+        corresponding_transaction = mbank_trans_by_amount[float(ht.amount)]
+        if corresponding_transaction:
+            if len(corresponding_transaction) > 1:
+                duplicate_bleledger_trns_by_amount[float(ht.amount)].append(ht)
             else:
-                matched_id = match[0][1]
+                # corresponding_transaction_id = id(corresponding_transaction)
+                corresponding_transaction_id = corresponding_transaction[0][1]
                 try:
-                    unmatchedmbank_trns.remove(matched_id)    
+                    unmatchedmbank_trns.remove(corresponding_transaction_id)    
                 except KeyError:
                     # TODO: deal with double matching form hledger to mbank
                     # so: hledger has two trns with amount X, while mbank has only one with amout X
@@ -100,7 +117,7 @@ def main():
             pass
 
     # TODO: deal with this!
-    for amount, cases in  duplicate_bleledger_trns.items():
+    for amount, cases in  duplicate_bleledger_trns_by_amount.items():
         match = mbank_trans_by_amount[amount]
         if len(cases) != len(match):
             # TODO: print a header for this
@@ -120,7 +137,7 @@ def main():
     # TODO: add some kind of success message when all is well
 
 
-def parse_hledger_row(row: Dict[str, Any]) -> Optional[HledgerTransaction]:
+def parse_hledger_chunck(row: Dict[str, Any]) -> Optional[HledgerTransaction]:
     if row["account"] == "assets:mbank:main":
         if row["description"] == "Reconcilement":
             return
@@ -132,7 +149,7 @@ def parse_hledger_row(row: Dict[str, Any]) -> Optional[HledgerTransaction]:
         )
 
 
-def parse_mbank_row(regexp_match: Tuple[str, str, str, str]) -> MbankTransaction:
+def parse_mbank_chunck(regexp_match: Tuple[str, str, str, str]) -> MbankTransaction:
     description = regexp_match[2]
 
     bank_operation_date = regexp_match[0]
@@ -141,13 +158,15 @@ def parse_mbank_row(regexp_match: Tuple[str, str, str, str]) -> MbankTransaction
     assert bank_operation_date == bank_clearing_date
     bank_date = bank_operation_date
 
-    rc_date_match = re.search("DATA TRANSAKCJI: (.*)", description)
-    real_clearing_date = rc_date_match.group(1) if rc_date_match else None
+    additional_date_match = re.search("DATA TRANSAKCJI: (.*)", description)
+    # this corresponds to when the card is swipped as opposed to when the
+    # transaction is cleared with the provider
+    expense_origin_date = additional_date_match.group(1) if additional_date_match else None
 
     return MbankTransaction(
         amount=regexp_match[3].replace(",",".").replace(" ", ""),
         description=description,
-        date=real_clearing_date or bank_date,
+        accounting_date=expense_origin_date or bank_date,
     )
 
 
