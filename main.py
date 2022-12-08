@@ -31,6 +31,7 @@ def main(reconciliation_month=11, hledger_csv_statement="/tmp/sep.csv", mbank_ht
         print("Congrats, all reconciled!")
 
 
+# TODO: not sure if this belong in main...
 def find_unbalanced_matches(mbank_transactions: Sequence[MbankTransaction], hledger_transactions: Sequence[HledgerTransaction]):
     # TODO: comments?
     matches = defaultdict(TransactionsMatch)

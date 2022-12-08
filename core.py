@@ -28,6 +28,7 @@ class TransactionsMatch:
     hledger_transactions: Set[HledgerTransaction] = dataclasses.field(default_factory=set)
     mbank_transactions: Set[MbankTransaction] = dataclasses.field(default_factory=set)
 
+    # TODO: this isn't core, it simply shouldn't be possible to create incorrect matches
     def is_correct(self):
         import itertools
         amounts = list(map(lambda t: t.amount, itertools.chain(self.hledger_transactions, self.mbank_transactions)))
