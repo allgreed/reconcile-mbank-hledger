@@ -36,9 +36,9 @@ def find_unbalanced_matches(mbank_transactions: Sequence[MbankTransaction], hled
     # TODO: comments?
     matches = defaultdict(TransactionsMatch)
     for t in hledger_transactions:
-        matches[t.amount].hledger_transactions.append(t)
+        matches[t.amount].hledger_transactions.add(t)
     for t in mbank_transactions:
-        matches[t.amount].mbank_transactions.append(t)
+        matches[t.amount].mbank_transactions.add(t)
     matches = list(matches.values())
     assert all(m.is_correct() for m in matches)
 

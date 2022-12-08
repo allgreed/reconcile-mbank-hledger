@@ -1,6 +1,6 @@
 import dataclasses
 from decimal import Decimal
-from typing import List
+from typing import Set
 from datetime import date
 
 from pydantic.dataclasses import dataclass
@@ -25,8 +25,8 @@ class HledgerTransaction(Transaction):
 
 @dataclass
 class TransactionsMatch:
-    hledger_transactions: List[HledgerTransaction] = dataclasses.field(default_factory=list)
-    mbank_transactions: List[MbankTransaction] = dataclasses.field(default_factory=list)
+    hledger_transactions: Set[HledgerTransaction] = dataclasses.field(default_factory=set)
+    mbank_transactions: Set[MbankTransaction] = dataclasses.field(default_factory=set)
 
     def is_correct(self):
         import itertools
