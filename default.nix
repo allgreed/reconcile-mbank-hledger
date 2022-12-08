@@ -11,6 +11,7 @@ let
 
     # dev
     pytest
+    pytest-cov
     ptpython
   ];
   pythonCore = pkgs.python39;

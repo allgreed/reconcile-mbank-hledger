@@ -8,7 +8,7 @@ ENTRYPOINT_DEPS := $(SOURCES) $(INPUTS)
 
 enter_command = ls $(ENTRYPOINT_DEPS) | entr -c make --no-print-directory $(1)
 
-watch:
+watch:  ## run app on every change
 	$(call enter_command,run)
 
 run: setup ## run the app
@@ -18,9 +18,9 @@ lint: setup ## run static analysis
 	@echo "Not implemented"; false
 
 test: setup ## run all tests
-	python3 -m pytest
+	python3 -m pytest --cov-report term-missing --cov .
 
-iterate: 
+iterate:  ## run tests on every change
 	$(call enter_command,test)
 
 container: build ## create container
