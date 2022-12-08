@@ -1,6 +1,8 @@
+import dataclasses
 from decimal import Decimal
-
+from typing import List
 from datetime import date
+
 from pydantic.dataclasses import dataclass
 from pydantic import PositiveInt, constr
 
@@ -19,3 +21,18 @@ class MbankTransaction(Transaction):
 @dataclass(frozen=True)
 class HledgerTransaction(Transaction):
     ledger_id: PositiveInt
+
+
+@dataclass
+class TransactionsMatch:
+    hledger_transactions: List[HledgerTransaction] = dataclasses.field(default_factory=list)
+    mbank_transactions: List[MbankTransaction] = dataclasses.field(default_factory=list)
+
+    def is_correct(self):
+        import itertools
+        amounts = list(map(lambda t: t.amount, itertools.chain(self.hledger_transactions, self.mbank_transactions)))
+        return all(a == amounts[0] for a in amounts[1:]) 
+
+    @property
+    def is_balanced(self):
+        return len(self.hledger_transactions) == len(self.mbank_transactions)

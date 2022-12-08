@@ -1,6 +1,7 @@
-SOURCES := main.py main_test.py core.py
+SOURCES := main.py core.py
+TESTS := test_main.py
 INPUTS := ~/Downloads/bork.html /tmp/sep.csv
-ENTRYPOINT_DEPS := $(SOURCES) $(INPUTS)
+ENTRYPOINT_DEPS := $(SOURCES) $(INPUTS) $(TESTS)
 
 # Porcelain
 # ###############
