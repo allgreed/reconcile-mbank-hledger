@@ -1,65 +1,72 @@
 import csv
 import re
 from collections import defaultdict
-from typing import Dict, Any
-import hashlib
-import json
-import uuid
-from typing import Optional, Dict, Any, Tuple, List
+from typing import Optional, Dict, Any, Tuple, List, Sequence
+from dataclasses import dataclass, field
 
-from core import HledgerTransaction, MbankTransaction, Transaction
+from core import HledgerTransaction, MbankTransaction
 
 
-def main():
-    # export at least +2 days to get all the debit carts settlemetns!
-    # assumption: reconcilement happens on monthly basis
+# TODO: refactor to Path
+def main(reconciliation_month=11, hledger_csv_statement="/tmp/sep.csv", mbank_html_statement="/home/allgreed/Downloads/bork.html"):
+    with open(hledger_csv_statement) as f:
+        hledger_transactions = read_hledger_csv_transactions(f)
+        # assumption: reconcilement happens on monthly basis
+        # TODO: assert this assumption
 
-    # TODO: refactor into domain code
+    with open(mbank_html_statement) as f:
+        # mbank will contain slightly more data
+        # export at least +2 days to get all the debit carts settlemetns!
+        # TODO: assert this assumption
+        mbank_transactions = [t for t in read_mbank_transactions(f) if t.accounting_date.month == reconciliation_month]
+
+    # TODO: should match be defined on a Transaction or seperately?
+    @dataclass
+    class TransactionsMatch:
+        hledger_transactions: List[HledgerTransaction] = field(default_factory=list)
+        mbank_transactions: List[MbankTransaction] = field(default_factory=list)
+
+        def is_correct(self):
+            # TODO: code this - concat sequences and extract amount, should work based on common Transaction type
+            # amounts = ...
+            # return all(a == amount[0] for a in amounts[1:]) 
+            return True
+
+        @property
+        def is_balanced(self):
+            return len(self.hledger_transactions) == len(self.mbank_transactions)
+
+    matches = defaultdict(TransactionsMatch)
+    for t in hledger_transactions:
+        matches[t.amount].hledger_transactions.append(t)
+    for t in mbank_transactions:
+        matches[t.amount].mbank_transactions.append(t)
+    matches = list(matches.values())
+    assert all(m.is_correct() for m in matches), "all matches are correct - meaning the optimisation works as expected"
+
+    unbalanced_matches = [m for m in matches if not m.is_balanced]
+
+    if unbalanced_matches:
+        ...
+        # display the problem sensibly
+    else:
+        print("Congrats, all reconciled!")
 
     # TODO: pay close attention to transcation with negative expenses -> they might be insanely wrong
-
-    # TODO: make sure I'm getting the right periods for mbank -> see settlement vs transaction date
     # TODO: nicer way to automate reconciliment update
 
-    hledger_transactions: List[HledgerTransaction] = []
-    mbank_transactions: List[MbankTransaction] = []
+    ##########
+    # TODO: refactor into domain code <<<<<<<
 
     unmatchedmbank_trns = set()
     mbank_trans_by_amount = defaultdict(list)
     mbank_trns_by_id = {}
-
-    with open("/tmp/sep.csv") as csvfile:
-        for row in csv.DictReader(csvfile):
-            maybe_ht = parse_hledger_chunck(row)
-            if maybe_ht:
-                hledger_transactions.append(maybe_ht)
-
-
-    with open("/home/allgreed/Downloads/bork.html") as f:
-        for regexp_match in re.findall(MAGIC_MBANK_STATEMENT_REGEXP, f.read().strip(), re.MULTILINE):
-            t = parse_mbank_chunck(regexp_match)
-            
-            # TODO: refactor
-            from datetime import date
-            # TODO: extract parameter
-            reconciliation_month = 11
-            reconciliation_year = 2022
-
-            first_of_this_month = date(year=reconciliation_year, month=reconciliation_month, day=1)
-            # TODO: that's not true, the year can roll over with the month
-            first_of_next_month = date(year=reconciliation_year, month=reconciliation_month + 1, day=1)
-
-            if first_of_this_month <= t.accounting_date < first_of_next_month:
-                mbank_transactions.append(t)
-
-                # TODO: deloop this part
-                mbank_trans_by_amount[t.amount].append((t.description, id(t)))
-                mbank_trns_by_id[id(t)] = (t.amount, t.description)
-                unmatchedmbank_trns.add(id(t))
-
+    for t in mbank_transactions:
+        mbank_trans_by_amount[t.amount].append((t.description, id(t)))
+        mbank_trns_by_id[id(t)] = (t.amount, t.description)
+        unmatchedmbank_trns.add(id(t))
 
     duplicate_bleledger_trns_by_amount = defaultdict(list)
-
     for ht in hledger_transactions:
         corresponding_transaction = mbank_trans_by_amount[ht.amount]
         if corresponding_transaction:
@@ -99,43 +106,56 @@ def main():
     for t in unmatchedmbank_trns:
         print(mbank_trns_by_id[t])
 
-    # TODO: add some kind of success message when all is well
+
+# TODO: type as IOsomething
+# TODO: extract as port
+def read_hledger_csv_transactions(file: ...) -> Sequence[HledgerTransaction]:
+    def parse_hledger_chunk(row: Dict[str, Any]) -> Optional[HledgerTransaction]:
+        if row["account"] == "assets:mbank:main":
+            if row["description"] == "Reconcilement":
+                return
+
+            return HledgerTransaction(
+                description=row["description"],
+                ledger_id=row["txnidx"],
+                amount=row["amount"],
+            )
+
+    result = map(parse_hledger_chunk, csv.DictReader(file))
+    # remove the pesky None's
+    result = list(filter(bool, result))
+    # TODO: or typecheck in some other way to make the pyright happy
+    assert all(isinstance(i, HledgerTransaction) for i in result)
+    return result
 
 
-def parse_hledger_chunck(row: Dict[str, Any]) -> Optional[HledgerTransaction]:
-    if row["account"] == "assets:mbank:main":
-        if row["description"] == "Reconcilement":
-            return
+# TODO: type as IOsomething
+# TODO: extract as port
+def read_mbank_transactions(file: ...) -> Sequence[MbankTransaction]:
+    def parse_mbank_chunk(regexp_match: Tuple[str, str, str, str]) -> MbankTransaction:
+        description = regexp_match[2]
 
-        return HledgerTransaction(
-            description=row["description"],
-            ledger_id=row["txnidx"],
-            amount=row["amount"],
+        bank_operation_date = regexp_match[0]
+        bank_clearing_date = regexp_match[1]
+
+        assert bank_operation_date == bank_clearing_date
+        bank_date = bank_operation_date
+
+        additional_date_match = re.search("DATA TRANSAKCJI: (.*)", description)
+        # this corresponds to when the card is swipped as opposed to when the
+        # transaction is cleared with the provider
+        expense_origin_date = additional_date_match.group(1) if additional_date_match else None
+
+        return MbankTransaction(
+            amount=regexp_match[3].replace(",",".").replace(" ", ""),
+            description=description,
+            accounting_date=expense_origin_date or bank_date,
         )
 
+    MAGIC_MBANK_STATEMENT_REGEXP = r'<tr>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+><nobr>(.*)<\/nobr><\/td>\n\s+<td["\s\w=]+>.*<\/td>\n\s+<\/tr>'
 
-MAGIC_MBANK_STATEMENT_REGEXP = r'<tr>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+><nobr>(.*)<\/nobr><\/td>\n\s+<td["\s\w=]+>.*<\/td>\n\s+<\/tr>'
-
-
-def parse_mbank_chunck(regexp_match: Tuple[str, str, str, str]) -> MbankTransaction:
-    description = regexp_match[2]
-
-    bank_operation_date = regexp_match[0]
-    bank_clearing_date = regexp_match[1]
-
-    assert bank_operation_date == bank_clearing_date
-    bank_date = bank_operation_date
-
-    additional_date_match = re.search("DATA TRANSAKCJI: (.*)", description)
-    # this corresponds to when the card is swipped as opposed to when the
-    # transaction is cleared with the provider
-    expense_origin_date = additional_date_match.group(1) if additional_date_match else None
-
-    return MbankTransaction(
-        amount=regexp_match[3].replace(",",".").replace(" ", ""),
-        description=description,
-        accounting_date=expense_origin_date or bank_date,
-    )
+    matches = re.findall(MAGIC_MBANK_STATEMENT_REGEXP, file.read().strip(), re.MULTILINE)
+    return list(map(parse_mbank_chunk, matches))
 
 
 if __name__ == "__main__":
