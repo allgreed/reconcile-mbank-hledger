@@ -1,26 +1,32 @@
 import dataclasses
 from decimal import Decimal
-from typing import Set
+from typing import Set, NewType
 from datetime import date
 
 from pydantic.dataclasses import dataclass
 from pydantic import PositiveInt, constr
 
+# this is the best I can do so far...
+Currency = NewType("Currency", constr(min_length=1))
 
 @dataclass(frozen=True)
 class Transaction:
     amount: Decimal
     description: constr(min_length=3)
 
-
 @dataclass(frozen=True)
 class MbankTransaction(Transaction):
     accounting_date: date
+    # TODO: make the types match
+    currency: Currency = "PLN"
 
 
 @dataclass(frozen=True)
 class HledgerTransaction(Transaction):
+    # TODO: well... it's not str
+    currency: Currency
     ledger_id: PositiveInt
+    accounting_date: date = date(2022,11,1)
 
 
 @dataclass

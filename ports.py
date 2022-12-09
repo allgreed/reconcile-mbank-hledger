@@ -39,10 +39,16 @@ def read_hledger_csv_transactions(file: io.TextIOBase) -> Sequence[HledgerTransa
             if row["description"] == "Reconcilement":
                 return
 
+            date1 = row["date"]
+            date2 = row["date2"]
+            assert date2 == ""
+
             return HledgerTransaction(
                 description=row["description"],
                 ledger_id=row["txnidx"],
                 amount=row["amount"],
+                accounting_date=date1,
+                currency = row["commodity"],
             )
 
     result = map(parse_hledger_chunk, csv.DictReader(file))

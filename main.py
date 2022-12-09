@@ -10,20 +10,42 @@ def main(reconciliation_month=11, hledger_csv_statement="/tmp/sep.csv", mbank_ht
     with open(hledger_csv_statement) as f:
         hledger_transactions = read_hledger_csv_transactions(f)
         # assumption: reconcilement happens on monthly basis
+        # assumption: the currency is pln
         # TODO: assert this assumption
 
     with open(mbank_html_statement) as f:
         # mbank will contain slightly more data
-        # export at least +2 days to get all the debit carts settlemetns!
+        # assuumption: export at least +2 days to get all the debit carts settlemetns!
+        # assumption: the currency is pln
         # TODO: assert this assumption
         mbank_transactions = [t for t in read_mbank_transactions(f) if t.accounting_date.month == reconciliation_month]
 
     unbalanced_matches = find_unbalanced_matches(mbank_transactions, hledger_transactions)
 
     if unbalanced_matches:
-        print(unbalanced_matches)
-        ...
+        problem = unbalanced_matches[0]
+
+        def display_mbank_transaction(t: MbankTransaction) -> str:
+            return f"{t.amount} {t.accounting_date} {t.description}"
+
+        def display_hledger_transaction(t: MbankTransaction) -> str:
+            # TODO: also ledger ID?
+            return f"{t.amount} {t.accounting_date} {t.description}"
+
+        print("Inconsitency detected -> unbalanced match for amount:")
+        print("-------- hledger --------")
+        for t in problem.hledger_transactions:
+            print(display_hledger_transaction(t))
+
+        print("=======================")
+        for t in problem.mbank_transactions:
+            print(display_mbank_transaction(t))
+
+
+        print("---------  mbank  -------")
         # display the problem sensibly
+
+        print(f"there are {len(unbalanced_matches) - 1} unsolved problems remaining!")
 
         # TODO: pay close attention to transcation with negative expenses -> they might be insanely wrong
         # TODO: nicer way to automate reconciliment update

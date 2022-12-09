@@ -1,4 +1,4 @@
-SOURCES := main.py core.py
+SOURCES := $(wildcard *.py)
 TESTS := test_main.py
 INPUTS := ~/Downloads/bork.html /tmp/sep.csv
 ENTRYPOINT_DEPS := $(SOURCES) $(INPUTS) $(TESTS)
