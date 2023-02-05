@@ -1,12 +1,17 @@
 from collections import defaultdict
 from typing import Sequence
+from datetime import date, timedelta
 
 from core import HledgerTransaction, MbankTransaction, TransactionsMatch
 from ports import read_hledger_csv_transactions, read_mbank_transactions
 
 
 # TODO: refactor to Path
-def main(reconciliation_month=11, hledger_csv_statement="/tmp/sep.csv", mbank_html_statement="/home/allgreed/Downloads/bork.html"):
+def main(reconciliation_month=1, hledger_csv_statement="/tmp/sep.csv", mbank_html_statement="/home/allgreed/Downloads/bork.html"):
+    previous_month_number = (date.today().replace(day=1) - timedelta(days=1)).month
+    if (reconciliation_month != previous_month_number):
+        print("Warning: using a month that is not the previous month!!!")
+
     with open(hledger_csv_statement) as f:
         hledger_transactions = read_hledger_csv_transactions(f)
         # assumption: reconcilement happens on monthly basis
