@@ -30,10 +30,13 @@ def main(reconciliation_month=1, hledger_csv_statement="/tmp/sep.csv", mbank_htm
     if unbalanced_matches:
         problem = unbalanced_matches[0]
 
+        if any(t.amount > 0 for t in problem.hledger_transactions):
+            print("Likely a false-positive xD :: check your signs by the transaction")
+
         def display_mbank_transaction(t: MbankTransaction) -> str:
             return f"{t.amount} {t.accounting_date} {t.description}"
 
-        def display_hledger_transaction(t: MbankTransaction) -> str:
+        def display_hledger_transaction(t: HledgerTransaction) -> str:
             # TODO: also ledger ID?
             return f"{t.amount} {t.accounting_date} {t.description}"
 
@@ -52,7 +55,6 @@ def main(reconciliation_month=1, hledger_csv_statement="/tmp/sep.csv", mbank_htm
 
         print(f"there are {len(unbalanced_matches) - 1} unsolved problems remaining!")
 
-        # TODO: pay close attention to transcation with negative expenses -> they might be insanely wrong
         # TODO: nicer way to automate reconciliment update
         # TODO: some kind of a switch for handling problems one at a time
     else:
@@ -63,10 +65,13 @@ def main(reconciliation_month=1, hledger_csv_statement="/tmp/sep.csv", mbank_htm
 def find_unbalanced_matches(mbank_transactions: Sequence[MbankTransaction], hledger_transactions: Sequence[HledgerTransaction]):
     # TODO: comments?
     matches = defaultdict(TransactionsMatch)
+
     for t in hledger_transactions:
         matches[t.amount].hledger_transactions.add(t)
+
     for t in mbank_transactions:
         matches[t.amount].mbank_transactions.add(t)
+
     matches = list(matches.values())
     assert all(m.is_correct() for m in matches)
 
