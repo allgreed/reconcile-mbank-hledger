@@ -7,7 +7,7 @@ ENTRYPOINT_DEPS := $(SOURCES) $(INPUTS) $(TESTS)
 # ###############
 .PHONY: container run lint test watch
 
-enter_command = ls $(ENTRYPOINT_DEPS) | entr -c make --no-print-directory $(1)
+enter_command = ls $(ENTRYPOINT_DEPS) | entr -cr make --no-print-directory $(1)
 
 watch:  ## run app on every change
 	$(call enter_command,run)

@@ -7,7 +7,7 @@ from ports import read_hledger_csv_transactions, read_mbank_transactions
 
 
 # TODO: refactor to Path
-def main(reconciliation_month=1, hledger_csv_statement="/tmp/sep.csv", mbank_html_statement="/home/allgreed/Downloads/bork.html"):
+def main(reconciliation_month=2, hledger_csv_statement="/tmp/sep.csv", mbank_html_statement="/home/allgreed/Downloads/bork.html"):
     previous_month_number = (date.today().replace(day=1) - timedelta(days=1)).month
     if (reconciliation_month != previous_month_number):
         print("Warning: using a month that is not the previous month!!!")
@@ -27,39 +27,42 @@ def main(reconciliation_month=1, hledger_csv_statement="/tmp/sep.csv", mbank_htm
 
     unbalanced_matches = find_unbalanced_matches(mbank_transactions, hledger_transactions)
 
-    if unbalanced_matches:
+    while unbalanced_matches:
         problem = unbalanced_matches[0]
 
-        if any(t.amount > 0 for t in problem.hledger_transactions):
-            print("Likely a false-positive xD :: check your signs by the transaction")
-
-        def display_mbank_transaction(t: MbankTransaction) -> str:
-            return f"{t.amount} {t.accounting_date} {t.description}"
-
-        def display_hledger_transaction(t: HledgerTransaction) -> str:
-            # TODO: also ledger ID?
-            return f"{t.amount} {t.accounting_date} {t.description}"
-
-        print("Inconsitency detected -> unbalanced match for amount:")
-        print("-------- hledger --------")
-        for t in problem.hledger_transactions:
-            print(display_hledger_transaction(t))
-
-        print("=======================")
-        for t in problem.mbank_transactions:
-            print(display_mbank_transaction(t))
-
-
-        print("---------  mbank  -------")
-        # display the problem sensibly
+        display_problem(problem)
 
         print(f"there are {len(unbalanced_matches) - 1} unsolved problems remaining!")
 
+        key = input()
+        if key.startswith("s"):
+            unbalanced_matches = unbalanced_matches[1:] + [unbalanced_matches[0]]
         # TODO: nicer way to automate reconciliment update
         # TODO: some kind of a switch for handling problems one at a time
     else:
         print("Congrats, all reconciled!")
 
+def display_problem(problem):
+    if any(t.amount > 0 for t in problem.hledger_transactions):
+        print("Likely a false-positive xD :: check your signs by the transaction")
+
+    def display_mbank_transaction(t: MbankTransaction) -> str:
+        return f"{t.amount} {t.accounting_date} {t.description}"
+
+    def display_hledger_transaction(t: HledgerTransaction) -> str:
+        # TODO: also ledger ID?
+        return f"{t.amount} {t.accounting_date} {t.description}"
+
+    print("Inconsitency detected -> unbalanced match for amount:")
+    print("-------- hledger --------")
+    for t in problem.hledger_transactions:
+        print(display_hledger_transaction(t))
+
+    print("=======================")
+    for t in problem.mbank_transactions:
+        print(display_mbank_transaction(t))
+
+    print("---------  mbank  -------")
 
 # TODO: not sure if this belong in main...
 def find_unbalanced_matches(mbank_transactions: Sequence[MbankTransaction], hledger_transactions: Sequence[HledgerTransaction]):
