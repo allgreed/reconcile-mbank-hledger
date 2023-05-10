@@ -7,7 +7,8 @@ from ports import read_hledger_csv_transactions, read_mbank_transactions
 
 
 # TODO: refactor to Path
-def main(reconciliation_month=3, hledger_csv_statement="/tmp/sep.csv", mbank_html_statement="/home/allgreed/Downloads/bork.html"):
+# TODO: default reconciliation month -> last month
+def main(reconciliation_month=4, hledger_csv_statement="/tmp/sep.csv", mbank_html_statement="/home/allgreed/Downloads/bork.html"):
     previous_month_number = (date.today().replace(day=1) - timedelta(days=1)).month
     if (reconciliation_month != previous_month_number):
         print("Warning: using a month that is not the previous month!!!")
