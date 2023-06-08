@@ -7,12 +7,10 @@ from ports import read_hledger_csv_transactions, read_mbank_transactions
 
 
 # TODO: refactor to Path
-# TODO: default reconciliation month -> last month
-def main(reconciliation_month=4, hledger_csv_statement="/tmp/sep.csv", mbank_html_statement="/home/allgreed/Downloads/bork.html"):
+def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_statement="/home/allgreed/Downloads/bork.html"):
     previous_month_number = (date.today().replace(day=1) - timedelta(days=1)).month
     if (reconciliation_month != previous_month_number):
         print("Warning: using a month that is not the previous month!!!")
-        assert False
 
     with open(hledger_csv_statement) as f:
         hledger_transactions = read_hledger_csv_transactions(f)
@@ -84,4 +82,5 @@ def find_unbalanced_matches(mbank_transactions: Sequence[MbankTransaction], hled
 
 
 if __name__ == "__main__":
-    main()
+    previous_month = date.today().replace(day=1) - timedelta(days=1)
+    main(reconciliation_month=int(previous_month.strftime("%m")))

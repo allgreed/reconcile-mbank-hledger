@@ -45,6 +45,11 @@ def read_hledger_csv_transactions(file: io.TextIOBase) -> Sequence[HledgerTransa
             date2 = row["date2"]
             assert date2 == ""
 
+            # TODO: display this error more gracefully
+            # maybe introspect the pydantic errors?
+            if len(row["description"]) < 3:
+                print(row["description"])
+
             return HledgerTransaction(
                 item_number=i,
                 description=row["description"],
