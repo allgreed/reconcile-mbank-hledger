@@ -31,14 +31,15 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
         problem = unbalanced_matches[0]
 
         display_problem(problem)
+        # TODO: get problem hints -> like if I have a missing mbank/hledger entry, and there are complementary entries
+        # (so missing 1 mbank : missing 1 hledger), display those also
 
         print(f"there are {len(unbalanced_matches) - 1} unsolved problems remaining!")
 
         key = input()
         if key.startswith("s"):
             unbalanced_matches = unbalanced_matches[1:] + [unbalanced_matches[0]]
-        # TODO: nicer way to automate reconciliment update
-        # TODO: some kind of a switch for handling problems one at a time
+        # TODO: nicer way to automate reconciliment update - like "r" => run the script and get back to the problem
     else:
         print("Congrats, all reconciled!")
 
