@@ -39,12 +39,19 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
         key = input()
         if key.startswith("s"):
             unbalanced_matches = unbalanced_matches[1:] + [unbalanced_matches[0]]
-        # TODO: nicer way to automate reconciliment update - like "r" => run the script and get back to the problem
+        if key.startswith("r"):
+            # TODO: nicer way to automate reconciliment update - like "r" => run the script and get back to the problem
+            import subprocess
+            # TODO: parametrize hledger_print so that it can get the month number from script
+            subprocess.run(["bash", "./hledger_print"])
+            # lel, poor man's restart
+            main(reconciliation_month)
     else:
         print("Congrats, all reconciled!")
 
 def display_problem(problem):
     if any(t.amount > 0 for t in problem.hledger_transactions):
+        # TODO: and account is expense!!!
         print("Likely a false-positive xD :: check your signs by the transaction")
 
     def display_mbank_transaction(t: MbankTransaction) -> str:

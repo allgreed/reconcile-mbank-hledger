@@ -1,1 +1,1 @@
-hledger print date:05/1-06/1 -O csv > /tmp/sep.csv
+hledger print date:06/1-07/1 -O csv > /tmp/sep.csv
