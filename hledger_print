@@ -1,1 +1,2 @@
-hledger print date:06/1-07/1 -O csv > /tmp/sep.csv
+#!/usr/bin/env bash
+hledger print date:$1/1-$2/1 -O csv > /tmp/sep.csv

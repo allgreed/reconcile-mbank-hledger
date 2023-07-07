@@ -1,3 +1,5 @@
+import subprocess
+from functools import partial
 from collections import defaultdict
 from typing import Sequence
 from datetime import date, timedelta
@@ -12,6 +14,13 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
     if (reconciliation_month != previous_month_number):
         print("Warning: using a month that is not the previous month!!!")
 
+    current_month_number = date.today().month
+    def dump_hledger():
+        def to_str_pad_zero_twice(s): return str(s).zfill(2)
+        # TODO: pass the tempfile also
+        subprocess.run(["sh", "./hledger_print"] + list(map(to_str_pad_zero_twice, [previous_month_number, current_month_number])))
+
+    dump_hledger()	
     with open(hledger_csv_statement) as f:
         hledger_transactions = read_hledger_csv_transactions(f)
         # assumption: reconcilement happens on monthly basis
@@ -41,9 +50,7 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
             unbalanced_matches = unbalanced_matches[1:] + [unbalanced_matches[0]]
         if key.startswith("r"):
             # TODO: nicer way to automate reconciliment update - like "r" => run the script and get back to the problem
-            import subprocess
-            # TODO: parametrize hledger_print so that it can get the month number from script
-            subprocess.run(["bash", "./hledger_print"])
+            dump_hledger()
             # lel, poor man's restart
             main(reconciliation_month)
     else:
