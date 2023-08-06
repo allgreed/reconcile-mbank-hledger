@@ -25,14 +25,17 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
         dump_hledger()
         with open(hledger_csv_statement) as f:
             hledger_transactions = read_hledger_csv_transactions(f)
-            # assumption: reconcilement happens on monthly basis
             # assumption: the currency is pln
+            # actually it would be: all transations are the same currency
             # TODO: assert this assumption
 
         with open(mbank_html_statement) as f:
             # mbank will contain slightly more data
             # assuumption: export at least +2 days to get all the debit carts settlemetns!
+
             # assumption: the currency is pln
+            # actually it would be: all transations are the same currency
+            # and first transation currency matches first hledger currency, therefore: all of the currencies match
             # TODO: assert this assumption
             mbank_transactions = [t for t in read_mbank_transactions(f) if t.accounting_date.month == reconciliation_month]
 
@@ -43,15 +46,14 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
 
             display_problem(problem)
             # TODO: get problem hints -> like if I have a missing mbank/hledger entry, and there are complementary entries
-            # (so missing 1 mbank : missing 1 hledger), display those also
 
             print(f"there are {len(unbalanced_matches) - 1} unsolved problems remaining!")
 
             key = input()
             if key.startswith("s"):
                 unbalanced_matches = unbalanced_matches[1:] + [unbalanced_matches[0]]
-            # TODO: just watch the ledger file for changes lol
             if key.startswith("r"):
+                # TODO: maaaybe watch the ledger file for changes, but that woulnd't be so trivial to implement
                 # lel, restart
                 break
         else:
@@ -67,7 +69,6 @@ def display_problem(problem):
         return f"{t.amount} {t.accounting_date} {t.description}"
 
     def display_hledger_transaction(t: HledgerTransaction) -> str:
-        # TODO: also ledger ID?
         return f"{t.amount} {t.accounting_date} {t.description}"
 
     print("Inconsitency detected -> unbalanced match for amount:")
