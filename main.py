@@ -18,43 +18,45 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
     def dump_hledger():
         def to_str_pad_zero_twice(s): return str(s).zfill(2)
         # TODO: pass the tempfile also
+        # TODO: skip the bash script I guess lol
         subprocess.run(["sh", "./hledger_print"] + list(map(to_str_pad_zero_twice, [previous_month_number, current_month_number])))
 
-    dump_hledger()	
-    with open(hledger_csv_statement) as f:
-        hledger_transactions = read_hledger_csv_transactions(f)
-        # assumption: reconcilement happens on monthly basis
-        # assumption: the currency is pln
-        # TODO: assert this assumption
+    while True:
+        dump_hledger()
+        with open(hledger_csv_statement) as f:
+            hledger_transactions = read_hledger_csv_transactions(f)
+            # assumption: reconcilement happens on monthly basis
+            # assumption: the currency is pln
+            # TODO: assert this assumption
 
-    with open(mbank_html_statement) as f:
-        # mbank will contain slightly more data
-        # assuumption: export at least +2 days to get all the debit carts settlemetns!
-        # assumption: the currency is pln
-        # TODO: assert this assumption
-        mbank_transactions = [t for t in read_mbank_transactions(f) if t.accounting_date.month == reconciliation_month]
+        with open(mbank_html_statement) as f:
+            # mbank will contain slightly more data
+            # assuumption: export at least +2 days to get all the debit carts settlemetns!
+            # assumption: the currency is pln
+            # TODO: assert this assumption
+            mbank_transactions = [t for t in read_mbank_transactions(f) if t.accounting_date.month == reconciliation_month]
 
-    unbalanced_matches = find_unbalanced_matches(mbank_transactions, hledger_transactions)
+        unbalanced_matches = find_unbalanced_matches(mbank_transactions, hledger_transactions)
 
-    while unbalanced_matches:
-        problem = unbalanced_matches[0]
+        while unbalanced_matches:
+            problem = unbalanced_matches[0]
 
-        display_problem(problem)
-        # TODO: get problem hints -> like if I have a missing mbank/hledger entry, and there are complementary entries
-        # (so missing 1 mbank : missing 1 hledger), display those also
+            display_problem(problem)
+            # TODO: get problem hints -> like if I have a missing mbank/hledger entry, and there are complementary entries
+            # (so missing 1 mbank : missing 1 hledger), display those also
 
-        print(f"there are {len(unbalanced_matches) - 1} unsolved problems remaining!")
+            print(f"there are {len(unbalanced_matches) - 1} unsolved problems remaining!")
 
-        key = input()
-        if key.startswith("s"):
-            unbalanced_matches = unbalanced_matches[1:] + [unbalanced_matches[0]]
-        if key.startswith("r"):
-            # TODO: nicer way to automate reconciliment update - like "r" => run the script and get back to the problem
-            dump_hledger()
-            # lel, poor man's restart
-            main(reconciliation_month)
-    else:
-        print("Congrats, all reconciled!")
+            key = input()
+            if key.startswith("s"):
+                unbalanced_matches = unbalanced_matches[1:] + [unbalanced_matches[0]]
+            # TODO: just watch the ledger file for changes lol
+            if key.startswith("r"):
+                # lel, restart
+                break
+        else:
+            print("Congrats, all reconciled!")
+            exit(0)
 
 def display_problem(problem):
     if any(t.amount > 0 for t in problem.hledger_transactions):
