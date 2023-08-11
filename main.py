@@ -22,6 +22,10 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
         subprocess.run(["sh", "./hledger_print"] + list(map(to_str_pad_zero_twice, [previous_month_number, current_month_number])))
 
     while True:
+        # TODO: return heuristic
+        # if the hledger transaction has expense with a negative amount
+        # and title does not contain "refund" / "zwrot" -> flag it!
+
         dump_hledger()
         with open(hledger_csv_statement) as f:
             hledger_transactions = read_hledger_csv_transactions(f)
