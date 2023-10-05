@@ -25,6 +25,7 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
         # TODO: return heuristic
         # if the hledger transaction has expense with a negative amount
         # and title does not contain "refund" / "return" / "zwrot" -> flag it!
+            # or maybe do it somewhre else? Like via fancy asserts?
 
         dump_hledger()
         with open(hledger_csv_statement) as f:
