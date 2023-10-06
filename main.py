@@ -30,17 +30,16 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
         dump_hledger()
         with open(hledger_csv_statement) as f:
             hledger_transactions = read_hledger_csv_transactions(f)
-            # assumption: the currency is pln
-            # actually it would be: all transations are the same currency
-            # TODO: assert this assumption
+            # TODO: assert all transations are the same currency as first transaction
 
         with open(mbank_html_statement) as f:
             # mbank will contain slightly more data
             # assuumption: export at least +2 days to get all the debit carts settlemetns!
+            # TODO: code it!
 
-            # assumption: the currency is pln
-            # actually it would be: all transations are the same currency
-            # and first transation currency matches first hledger currency, therefore: all of the currencies match
+            # TODO: assert first transaction is in PLN
+            # TODO: assert all transactions have the same currency as first transaction
+            # TODO: assert first transaction matches first hledger transaction
             # TODO: assert this assumption
             mbank_transactions = [t for t in read_mbank_transactions(f) if t.accounting_date.month == reconciliation_month]
 
