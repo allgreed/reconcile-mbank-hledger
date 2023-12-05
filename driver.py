@@ -13,3 +13,5 @@ x = TransactionsMatch(hledger_transactions={HledgerTransaction(item_number=104, 
 print(x)
 
 #TODO: figure out matching
+# so: a local matcher for big transactions to reduce lhs and rhs
+# also: a global matcher - to try and find potential typos, like 89 -> 98
