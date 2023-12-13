@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from core import HledgerTransaction, MbankTransaction, TransactionsMatch
 from ports import read_hledger_csv_transactions, read_mbank_transactions
 
+# TODO: expand to reconcile more stuff, namely Revolut
 
 # TODO: refactor to Path
 # TODO: describe what is reconciliation_month
