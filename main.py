@@ -18,10 +18,11 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
 
     current_month_number = date.today().month
     def dump_hledger():
-        def to_str_pad_zero_twice(s): return str(s).zfill(2)
-        # TODO: pass the tempfile also
-        # TODO: skip the bash script I guess lol
-        subprocess.run(["sh", "./hledger_print"] + list(map(to_str_pad_zero_twice, [previous_month_number, current_month_number])))
+        # TODO: skip the temp file altogether -> I can just parse on the fly by pipes :D
+
+        def pad(s): return str(s).zfill(2)
+        # TODO: actually use dates not just month numbers!!!
+        subprocess.run(["hledger", "print", f"date:2023-{pad(previous_month_number)}-1-{pad(current_month_number)}/1", "-O", "csv", "-o", "/tmp/sep.csv"])
 
     while True:
         # TODO: return heuristic
