@@ -45,11 +45,15 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
             # TODO: assert this assumption
             mbank_transactions = [t for t in read_mbank_transactions(f) if t.accounting_date.month == reconciliation_month]
 
+        # TODO: clean this up
         def is_reconcilment(problem):
             return len(problem.hledger_transactions) == 1 and len(problem.mbank_transactions) == 0 and next(iter(problem.hledger_transactions)).description == "Reconcilment mbank"
 
+        def is_opening(problem):
+            return len(problem.hledger_transactions) == 1 and len(problem.mbank_transactions) == 0 and next(iter(problem.hledger_transactions)).description == "opening balances"
+
         raw_unbalanced_matches = find_unbalanced_matches(mbank_transactions, hledger_transactions)
-        unbalanced_matches = [p for p in raw_unbalanced_matches if not is_reconcilment(p)]
+        unbalanced_matches = [p for p in raw_unbalanced_matches if not is_reconcilment(p) and not is_opening(p)]
 
         while unbalanced_matches:
             problem = unbalanced_matches[0]
