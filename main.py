@@ -22,7 +22,9 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
 
         def pad(s): return str(s).zfill(2)
         # TODO: actually use dates not just month numbers!!!
-        subprocess.run(["hledger", "print", f"date:2023-{pad(previous_month_number)}-1-{pad(current_month_number)}/1", "-O", "csv", "-o", "/tmp/sep.csv"])
+        # subprocess.run(["hledger", "print", f"date:2023-{pad(previous_month_number)}-1-{pad(current_month_number)}/1", "-O", "csv", "-o", "/tmp/sep.csv"])
+        # TODO: account for this ^
+        subprocess.run(["hledger", "print", f"date:{pad(previous_month_number)}-1-{pad(current_month_number)}/1", "-O", "csv", "-o", "/tmp/sep.csv"])
 
     while True:
         # TODO: return heuristic
