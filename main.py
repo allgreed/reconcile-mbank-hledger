@@ -57,6 +57,10 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
         raw_unbalanced_matches = find_unbalanced_matches(mbank_transactions, hledger_transactions)
         unbalanced_matches = [p for p in raw_unbalanced_matches if not is_reconcilment(p) and not is_opening(p)]
 
+        # I want to handle false-returns first, since they're easy to fix and likely cause another imbalance further
+        unbalanced_matches.sort(key=lambda p: p.contains_return, reverse=True)
+
+        # TODO: display returns first!
         while unbalanced_matches:
             problem = unbalanced_matches[0]
 
@@ -76,10 +80,10 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
             print("Congrats, all reconciled!")
             exit(0)
 
-def display_problem(problem):
-    if any(t.amount > 0 for t in problem.hledger_transactions):
-        # TODO: and account is expense!!!
-        print("Likely a false-positive xD :: check your signs by the transaction")
+def display_problem(problem: TransactionsMatch):
+    if problem.contains_return:
+        print("!!!! Likely a false-positive xD :: check your signs by the transaction")
+        # TODO: actually mark the retrun I guess
 
     def display_mbank_transaction(t: MbankTransaction) -> str:
         return f"{t.amount} {t.accounting_date} {t.description}"

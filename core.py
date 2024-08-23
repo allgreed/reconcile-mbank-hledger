@@ -31,6 +31,7 @@ class HledgerTransaction(Transaction):
     ledger_id: PositiveInt
 
 
+# TODO: wtf happens with types? why is it 'set[Dataclass]' and not a proper one? o.0
 @dataclass
 class TransactionsMatch:
     hledger_transactions: Set[HledgerTransaction] = dataclasses.field(default_factory=set)
@@ -45,3 +46,8 @@ class TransactionsMatch:
     @property
     def is_balanced(self):
         return len(self.hledger_transactions) == len(self.mbank_transactions)
+
+    @property
+    def contains_return(self):
+        return any(t.amount > 0 for t in self.hledger_transactions)
+        # TODO: and account for that is an expense account!!!
