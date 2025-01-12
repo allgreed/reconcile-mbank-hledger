@@ -2,19 +2,24 @@ import io
 import csv
 import re
 from typing import Optional, Dict, Any, Tuple, Sequence
+from datetime import datetime, date
 
 from core import HledgerTransaction, MbankTransaction
 
 
 def read_mbank_transactions(file: io.TextIOBase) -> Sequence[MbankTransaction]:
+    MAGIC_MBANK_STATEMENT_REGEXP = r'<tr>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+><nobr>(.*)<\/nobr><\/td>\n\s+<td["\s\w=]+>.*<\/td>\n\s+<\/tr>'
+
     def parse_mbank_chunk(i: int, regexp_match: Tuple[str, str, str, str]) -> MbankTransaction:
-        description = regexp_match[2]
+        # TODO: lift this up
+        # TODO: this format appears many time, does it have a name?
+        def parse_date(s: str) -> date: return datetime.strptime(s, "%Y-%m-%d").date()
 
-        bank_operation_date = regexp_match[0]
-        bank_clearing_date = regexp_match[1]
+        rm = regexp_match
+        bank_operation_date, bank_clearing_date, description = parse_date(rm[0]), parse_date(rm[1]), rm[2] 
 
-        assert bank_operation_date == bank_clearing_date
-        bank_date = bank_operation_date
+        assert bank_operation_date.month == bank_clearing_date.month
+        bank_date = max(bank_operation_date, bank_clearing_date)
 
         additional_date_match = re.search("DATA TRANSAKCJI: (.*)", description)
         # this corresponds to when the card is swipped as opposed to when the
@@ -27,8 +32,6 @@ def read_mbank_transactions(file: io.TextIOBase) -> Sequence[MbankTransaction]:
             accounting_date=expense_origin_date or bank_date,
             item_number=i,
         )
-
-    MAGIC_MBANK_STATEMENT_REGEXP = r'<tr>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+>(.*)<\/td>\n\s+<td["\s\w=]+><nobr>(.*)<\/nobr><\/td>\n\s+<td["\s\w=]+>.*<\/td>\n\s+<\/tr>'
 
     matches = re.findall(MAGIC_MBANK_STATEMENT_REGEXP, file.read().strip(), re.MULTILINE)
     return list(map(parse_mbank_chunk, *zip(*enumerate(matches))))

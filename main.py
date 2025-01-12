@@ -7,24 +7,26 @@ from datetime import date, timedelta
 from core import HledgerTransaction, MbankTransaction, TransactionsMatch
 from ports import read_hledger_csv_transactions, read_mbank_transactions
 
+THE_FORMAT = "%Y-%m-%d"
 # TODO: expand to reconcile more stuff, namely Revolut
 
 # TODO: refactor to Path
 # TODO: describe what is reconciliation_month
-def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_statement="/home/allgreed/Downloads/bork.html"):
-    previous_month_number = (date.today().replace(day=1) - timedelta(days=1)).month
-    if (reconciliation_month != previous_month_number):
-        print("Warning: using a month that is not the previous month!!!")
+def main(reconciliation_end_date, hledger_csv_statement="/tmp/sep.csv", mbank_html_statement="/home/allgreed/Downloads/bork.html"):
+    current_date = date.today()
+    reconcilement_month = reconciliation_end_date.month
 
-    current_month_number = date.today().month
+    start = reconciliation_end_date.replace(day=1).strftime(THE_FORMAT)
+    end = current_date.replace(day=1).strftime(THE_FORMAT)
     def dump_hledger():
-        # TODO: skip the temp file altogether -> I can just parse on the fly by pipes :D
+        subprocess.run([
+            "hledger", "print", "-O", "csv", f"date:{start}-{end}",
+            # TODO: skip the temp file altogether -> I can just parse on the fly by pipes :D
+            "-o", "/tmp/sep.csv",
+            # TODO: automate this?
+            # "-f", "~/Documents/finance/old-journals/2024.journal",
+        ])
 
-        def pad(s): return str(s).zfill(2)
-        # TODO: actually use dates not just month numbers!!!
-        # subprocess.run(["hledger", "print", f"date:2023-{pad(previous_month_number)}-1-{pad(current_month_number)}/1", "-O", "csv", "-o", "/tmp/sep.csv"])
-        # TODO: account for this ^
-        subprocess.run(["hledger", "print", f"date:{pad(previous_month_number)}-1-{pad(current_month_number)}/1", "-O", "csv", "-o", "/tmp/sep.csv"])
 
     while True:
         # TODO: return heuristic
@@ -45,7 +47,8 @@ def main(reconciliation_month, hledger_csv_statement="/tmp/sep.csv", mbank_html_
             # TODO: assert all transactions have the same currency as first transaction
             # TODO: assert first transaction matches first hledger transaction
             # TODO: assert this assumption
-            mbank_transactions = [t for t in read_mbank_transactions(f) if t.accounting_date.month == reconciliation_month]
+            mbank_transactions = [t for t in read_mbank_transactions(f) if t.accounting_date.month ==
+                                  reconcilement_month]
 
         # TODO: clean this up
         def is_reconcilment(problem):
@@ -120,5 +123,5 @@ def find_unbalanced_matches(mbank_transactions: Sequence[MbankTransaction], hled
 
 
 if __name__ == "__main__":
-    previous_month = date.today().replace(day=1) - timedelta(days=1)
-    main(reconciliation_month=int(previous_month.strftime("%m")))
+    previous_month_end = date.today().replace(day=1) - timedelta(days=1)
+    main(reconciliation_end_date=previous_month_end)
