@@ -76,8 +76,13 @@ def main(reconciliation_end_date, hledger_csv_statement="/tmp/sep.csv", mbank_ht
                 unbalanced_matches = unbalanced_matches[1:] + [unbalanced_matches[0]]
             if key.startswith("r"):
                 # TODO: maaaybe watch the ledger file for changes, but that woulnd't be so trivial to implement
-                # lel, restart
-                break
+                break # lel, restart
+            if key.startswith("a"):
+                # TODO: select transation to add
+                # TODO :add it to the ledger
+                # TODO: populate defaults
+                print("adding transaction!")
+                ...
         else:
             print("Congrats, all reconciled!")
             exit(0)
