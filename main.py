@@ -13,11 +13,10 @@ THE_FORMAT = "%Y-%m-%d"
 # TODO: refactor to Path
 # TODO: describe what is reconciliation_month
 def main(reconciliation_end_date, hledger_csv_statement="/tmp/sep.csv", mbank_html_statement="/home/allgreed/Downloads/bork.html"):
-    current_date = date.today()
     reconcilement_month = reconciliation_end_date.month
 
     start = reconciliation_end_date.replace(day=1).strftime(THE_FORMAT)
-    end = current_date.replace(day=1).strftime(THE_FORMAT)
+    end = (reconciliation_end_date + timedelta(days=1)).strftime(THE_FORMAT)
     def dump_hledger():
         subprocess.run([
             "hledger", "print", "-O", "csv", f"date:{start}-{end}",
