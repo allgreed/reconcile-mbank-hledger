@@ -1,5 +1,5 @@
+import sys
 import subprocess
-from functools import partial
 from collections import defaultdict
 from typing import Sequence
 from datetime import date, timedelta
@@ -127,5 +127,9 @@ def find_unbalanced_matches(mbank_transactions: Sequence[MbankTransaction], hled
 
 
 if __name__ == "__main__":
-    previous_month_end = date.today().replace(day=1) - timedelta(days=1)
-    main(reconciliation_end_date=previous_month_end)
+    reference_date = date.today()
+    if len(sys.argv) == 2:
+        reference_date = reference_date.replace(month=int(sys.argv[1]) + 1)
+
+    previous_month_end_from_reference = reference_date.replace(day=1) - timedelta(days=1)
+    main(reconciliation_end_date=previous_month_end_from_reference)
