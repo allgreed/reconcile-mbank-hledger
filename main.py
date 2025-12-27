@@ -5,7 +5,7 @@ from typing import Sequence
 from datetime import date, timedelta
 
 from core import HledgerTransaction, MbankTransaction, TransactionsMatch
-from ports import read_hledger_csv_transactions, read_mbank_transactions
+from ports import read_hledger_csv_transactions, read_mbank_transactions, read_revolut_csv_transactions
 
 THE_FORMAT = "%Y-%m-%d"
 # TODO: expand to reconcile more stuff, namely Revolut
@@ -14,6 +14,10 @@ THE_FORMAT = "%Y-%m-%d"
 # TODO: describe what is reconciliation_month
 def main(reconciliation_end_date, hledger_csv_statement="/tmp/sep.csv", mbank_html_statement="/home/allgreed/Downloads/bork.html"):
     reconcilement_month = reconciliation_end_date.month
+
+    # TODO: unhack
+    read_mbank_transactions = read_revolut_csv_transactions
+    mbank_html_statement = "/home/allgreed/Downloads/revo-2025.csv"
 
     start = reconciliation_end_date.replace(day=1).strftime(THE_FORMAT)
     end = (reconciliation_end_date + timedelta(days=1)).strftime(THE_FORMAT)
@@ -92,20 +96,14 @@ def display_problem(problem: TransactionsMatch):
         print("!!!! Likely a false-positive xD :: check your signs by the transaction")
         # TODO: actually mark the retrun I guess
 
-    def display_mbank_transaction(t: MbankTransaction) -> str:
-        return f"{t.amount} {t.accounting_date} {t.description}"
-
-    def display_hledger_transaction(t: HledgerTransaction) -> str:
-        return f"{t.amount} {t.accounting_date} {t.description}"
-
     print("Inconsitency detected -> unbalanced match for amount:")
     print("-------- hledger --------")
     for t in problem.hledger_transactions:
-        print(display_hledger_transaction(t))
+        print(t)
 
     print("=======================")
     for t in problem.mbank_transactions:
-        print(display_mbank_transaction(t))
+        print(t)
 
     print("---------  mbank  -------")
 
@@ -128,8 +126,11 @@ def find_unbalanced_matches(mbank_transactions: Sequence[MbankTransaction], hled
 
 if __name__ == "__main__":
     reference_date = date.today()
-    if len(sys.argv) == 2:
-        reference_date = reference_date.replace(month=int(sys.argv[1]) + 1)
 
+    # TODO: argparse
+    if len(sys.argv) == 2:
+        reference_date = reference_date.replace(month=int(sys.argv[1]))
+
+    # TOOD: use proper month end algo xD
     previous_month_end_from_reference = reference_date.replace(day=1) - timedelta(days=1)
-    main(reconciliation_end_date=previous_month_end_from_reference)
+    main(reconciliation_end_date=date(2025,12,28))

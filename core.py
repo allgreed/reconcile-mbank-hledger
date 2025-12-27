@@ -11,6 +11,7 @@ Currency = NewType("Currency", constr(min_length=1))
 
 @dataclass(frozen=True)
 class Transaction:
+    # TODO: remove this false assumption
     # the transaction *must* originate from some kind of statement and that statement has numbered items
     item_number: int
     amount: Decimal
@@ -18,6 +19,8 @@ class Transaction:
     accounting_date: date
     currency: Currency
 
+    def __str__(self):
+        return f"{self.amount} {self.currency} on {self.accounting_date}: {self.description}"
 
 @dataclass(frozen=True)
 class MbankTransaction(Transaction):

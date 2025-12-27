@@ -4,7 +4,7 @@ import re
 from typing import Optional, Dict, Any, Tuple, Sequence
 from datetime import datetime, date
 
-from core import HledgerTransaction, MbankTransaction
+from core import HledgerTransaction, MbankTransaction, Transaction
 
 
 def read_mbank_transactions(file: io.TextIOBase) -> Sequence[MbankTransaction]:
@@ -41,7 +41,7 @@ def read_hledger_csv_transactions(file: io.TextIOBase) -> Sequence[HledgerTransa
     # TODO: also it's not *just* hledgerTransaction - it's MbankHledgerTransaction
     def parse_hledger_chunk(i: int, row: Dict[str, Any]) -> Optional[HledgerTransaction]:
         # TODO: this is domain specific processing - move it where it belongs
-        if row["account"] == "assets:mbank:main":
+        if row["account"] == "assets:revolut":
             if row["description"] == "Reconcilement":
                 return
 
@@ -63,9 +63,22 @@ def read_hledger_csv_transactions(file: io.TextIOBase) -> Sequence[HledgerTransa
                 currency = row["commodity"],
             )
 
-    result = map(parse_hledger_chunk, *zip(*enumerate(csv.DictReader(file))))
-    # remove the pesky None's
-    result = list(filter(bool, result))
-    # TODO: or typecheck in some other way to make the pyright happy
-    assert all(isinstance(i, HledgerTransaction) for i in result)
-    return result
+    # TODO: can be put in one list comprehension most likely
+    _result = map(parse_hledger_chunk, *zip(*enumerate(csv.DictReader(file))))
+    return [c for c in _result if c is not None]
+
+
+def read_revolut_csv_transactions(file: io.TextIOBase) -> Sequence[Transaction]:
+    def parse_chunk(i: int, row: Dict[str, Any]) -> Transaction:
+        date1 = row["Data rozpoczęcia"].split(" ")[0]
+        #  date2 = row["Data zrealizowania"]
+
+        return Transaction(
+            item_number=i,
+            description=row["Opis"],
+            amount=row["Kwota"],
+            accounting_date=date1,
+            currency = row["Waluta"],
+        )
+
+    return list(map(parse_chunk, *zip(*enumerate(csv.DictReader(file)))))
