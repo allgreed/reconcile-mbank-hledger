@@ -1,6 +1,7 @@
 import io
 import csv
 import re
+from decimal import Decimal
 from typing import Optional, Dict, Any, Tuple, Sequence
 from datetime import datetime, date
 
@@ -72,10 +73,15 @@ def read_revolut_csv_transactions(file: io.TextIOBase) -> Sequence[Transaction]:
     def parse_chunk(i: int, row: Dict[str, Any]) -> Transaction:
         date1 = row["Data rozpoczęcia"].split(" ")[0]
         #  date2 = row["Data zrealizowania"]
+        amount = Decimal(row["Kwota"])
+        surcharge = Decimal(row["Opłata"])
+
+        assert (amount < 0 and surcharge > 0) or surcharge == 0
+        total = amount - surcharge
 
         return Transaction(
             description=row["Opis"],
-            amount=row["Kwota"],
+            amount=total,
             accounting_date=date1,
             currency = row["Waluta"],
         )
