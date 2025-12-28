@@ -30,6 +30,9 @@ class HledgerTransaction(Transaction):
     # TODO: well... it's not str
     ledger_id: PositiveInt
 
+    def __str__(self):
+        return f"{(super().__str__())} [{self.ledger_id}]"
+
 
 # TODO: wtf happens with types? why is it 'set[Dataclass]' and not a proper one? o.0
 @dataclass

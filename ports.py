@@ -40,6 +40,10 @@ def read_mbank_transactions(file: io.TextIOBase) -> Sequence[MbankTransaction]:
 def read_hledger_csv_transactions(file: io.TextIOBase) -> Sequence[HledgerTransaction]:
     # TODO: also it's not *just* hledgerTransaction - it's MbankHledgerTransaction
     def parse_hledger_chunk(row: Dict[str, Any]) -> Optional[HledgerTransaction]:
+        # TODO: have a debugger utility for this?
+        #  if row["txnidx"] == "1191":
+            #  print(row)
+
         # TODO: this is domain specific processing - move it where it belongs
         if row["account"] == "assets:revolut":
             if row["description"] == "Reconcilement":
