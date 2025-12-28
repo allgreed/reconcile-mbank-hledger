@@ -133,4 +133,4 @@ if __name__ == "__main__":
 
     # TOOD: use proper month end algo xD
     previous_month_end_from_reference = reference_date.replace(day=1) - timedelta(days=1)
-    main(reconciliation_end_date=date(2025,12,28))
+    main(reconciliation_end_date=previous_month_end_from_reference)

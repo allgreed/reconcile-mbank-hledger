@@ -30,7 +30,6 @@ def read_mbank_transactions(file: io.TextIOBase) -> Sequence[MbankTransaction]:
             amount=regexp_match[3].replace(",",".").replace(" ", ""),
             description=description,
             accounting_date=expense_origin_date or bank_date,
-            item_number=i,
         )
 
     matches = re.findall(MAGIC_MBANK_STATEMENT_REGEXP, file.read().strip(), re.MULTILINE)
@@ -39,7 +38,7 @@ def read_mbank_transactions(file: io.TextIOBase) -> Sequence[MbankTransaction]:
 
 def read_hledger_csv_transactions(file: io.TextIOBase) -> Sequence[HledgerTransaction]:
     # TODO: also it's not *just* hledgerTransaction - it's MbankHledgerTransaction
-    def parse_hledger_chunk(i: int, row: Dict[str, Any]) -> Optional[HledgerTransaction]:
+    def parse_hledger_chunk(row: Dict[str, Any]) -> Optional[HledgerTransaction]:
         # TODO: this is domain specific processing - move it where it belongs
         if row["account"] == "assets:revolut":
             if row["description"] == "Reconcilement":
@@ -55,7 +54,6 @@ def read_hledger_csv_transactions(file: io.TextIOBase) -> Sequence[HledgerTransa
                 print(row["description"])
 
             return HledgerTransaction(
-                item_number=i,
                 description=row["description"],
                 ledger_id=row["txnidx"],
                 amount=row["amount"],
@@ -63,9 +61,11 @@ def read_hledger_csv_transactions(file: io.TextIOBase) -> Sequence[HledgerTransa
                 currency = row["commodity"],
             )
 
-    # TODO: can be put in one list comprehension most likely
-    _result = map(parse_hledger_chunk, *zip(*enumerate(csv.DictReader(file))))
-    return [c for c in _result if c is not None]
+    return [
+        c
+        for ck in csv.DictReader(file)
+        if (c := parse_hledger_chunk(ck)) is not None
+    ]
 
 
 def read_revolut_csv_transactions(file: io.TextIOBase) -> Sequence[Transaction]:
@@ -74,7 +74,6 @@ def read_revolut_csv_transactions(file: io.TextIOBase) -> Sequence[Transaction]:
         #  date2 = row["Data zrealizowania"]
 
         return Transaction(
-            item_number=i,
             description=row["Opis"],
             amount=row["Kwota"],
             accounting_date=date1,

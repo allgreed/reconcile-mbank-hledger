@@ -11,9 +11,6 @@ Currency = NewType("Currency", constr(min_length=1))
 
 @dataclass(frozen=True)
 class Transaction:
-    # TODO: remove this false assumption
-    # the transaction *must* originate from some kind of statement and that statement has numbered items
-    item_number: int
     amount: Decimal
     description: constr(min_length=3)
     accounting_date: date
