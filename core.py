@@ -15,14 +15,17 @@ class Transaction:
     description: constr(min_length=3)
     accounting_date: date
     currency: Currency
+    # sometimes you have 2 transactions with the same parameters
+    # that are otherwise different transactions
+    nonce: int
+
 
     def __str__(self):
         return f"{self.amount} {self.currency} on {self.accounting_date}: {self.description}"
 
 @dataclass(frozen=True)
 class MbankTransaction(Transaction):
-    # TODO: make the types match
-    currency: Currency = "PLN"
+    pass
 
 
 @dataclass(frozen=True)
