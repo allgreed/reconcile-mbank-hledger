@@ -125,12 +125,24 @@ def find_unbalanced_matches(mbank_transactions: Sequence[MbankTransaction], hled
 
 
 if __name__ == "__main__":
-    reference_date = date.today()
+    import argparse
+    import calendar
 
-    # TODO: argparse
-    if len(sys.argv) == 2:
-        reference_date = reference_date.replace(month=int(sys.argv[1]))
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "month",
+        type=int,
+        nargs="?",
+        # targetting end of previous month
+        default=date.today().month - 1,
+        help="Month (1–12) to override the current month",
+    )
 
-    # TOOD: use proper month end algo xD
-    previous_month_end_from_reference = reference_date.replace(day=1) - timedelta(days=1)
-    main(reconciliation_end_date=previous_month_end_from_reference)
+    args = parser.parse_args()
+
+    today = date.today()
+    month = args.month
+    reconciliation_end_date = date(today.year, month, calendar.monthrange(today.year, month)[1])
+
+    print("reconciliation end:", reconciliation_end_date)
+    main(reconciliation_end_date=reconciliation_end_date)
