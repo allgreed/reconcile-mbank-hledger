@@ -1,7 +1,6 @@
 import pytest
 
 from core import *
-from main import find_unbalanced_matches
 
 
 m = MbankTransaction(amount=5, description="ble", accounting_date="2022-10-02")
@@ -16,19 +15,19 @@ h7 = HledgerTransaction(amount=7, description="bork", ledger_id=7)
     (set(), set()),
     ({m7}, {h7}),
 ])
-@pytest.mark.parametrize("mbank_transactions,hledger_transactions,result", [
+@pytest.mark.parametrize("real_world_transactions,hledger_transactions,result", [
     (set(), set(), []),
-    ({m}, set(), [TransactionsMatch(mbank_transactions=[m])]),
-    (set(), {h}, [TransactionsMatch(hledger_transactions=[h])]),
+    ({m}, set(), [MatchSet(real_world_transactions=[m])]),
+    (set(), {h}, [MatchSet(hledger_transactions=[h])]),
     ({m}, {h}, []),
-    ({m, m5}, {h}, [TransactionsMatch(mbank_transactions={m5, m}, hledger_transactions={h})]),
-    ({m}, {h, h5}, [TransactionsMatch(mbank_transactions={m}, hledger_transactions={h, h5})]),
+    ({m, m5}, {h}, [MatchSet(real_world_transactions={m5, m}, hledger_transactions={h})]),
+    ({m}, {h, h5}, [MatchSet(real_world_transactions={m}, hledger_transactions={h, h5})]),
 ])
-def test_find_unbalanched_matches(mbank_transactions, hledger_transactions, result, additional_h, additional_m):
-    mbank_transactions.union(additional_m)
+def test_find_unbalanched_matches(real_world_transactions, hledger_transactions, result, additional_h, additional_m):
+    real_world_transactions.union(additional_m)
     hledger_transactions.union(additional_h)
 
-    assert result == find_unbalanced_matches(mbank_transactions=mbank_transactions, hledger_transactions=hledger_transactions)
+    assert result == find_unbalanced_matches(real_world_transactions=real_world_transactions, hledger_transactions=hledger_transactions)
 
 
 def test_mk_transaction():
