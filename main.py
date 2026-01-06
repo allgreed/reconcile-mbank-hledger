@@ -143,7 +143,7 @@ if __name__ == "__main__":
     today = date.today()
     month = args.month
 
-    likely_reconciling_previous_year = today.month == 1 and month != 1
+    likely_reconciling_previous_year = today.month == 1
     year = today.year - (1 if likely_reconciling_previous_year else 0)
 
     reconciliation_end_date = date(year, month, calendar.monthrange(year, month)[1])
