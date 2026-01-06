@@ -1,23 +1,28 @@
-import sys
+import argparse
+import calendar
 import subprocess
-from collections import defaultdict
-from typing import Sequence
 from datetime import date, timedelta
 
-from core import HledgerTransaction, MbankTransaction, TransactionsMatch
+from core import MatchSet, find_unbalanced_matches
 from ports import read_hledger_csv_transactions, read_mbank_transactions, read_revolut_csv_transactions
 
 THE_FORMAT = "%Y-%m-%d"
-# TODO: expand to reconcile more stuff, namely Revolut
 
 # TODO: refactor to Path
-# TODO: describe what is reconciliation_month
-def main(reconciliation_end_date, hledger_csv_statement="/tmp/sep.csv", mbank_html_statement="/home/allgreed/Downloads/bork.html"):
+# TODO: use periods instead of end dates
+def main(reconciliation_end_date, bank, hledger_csv_statement="/tmp/sep.csv"):
     reconcilement_month = reconciliation_end_date.month
 
-    # TODO: unhack
-    read_mbank_transactions = read_revolut_csv_transactions
-    mbank_html_statement = "/home/allgreed/Downloads/revo-2025.csv"
+    # TODO: exhaustive matcher -- is possible?
+    match bank:
+        case "mbank":
+            read_transactions = read_mbank_transactions
+            mbank_html_statement="/home/allgreed/Downloads/bork.html"
+        case "revolut":
+            read_transactions = read_revolut_csv_transactions
+            mbank_html_statement = "/home/allgreed/Downloads/revo-2025.csv"
+        case _:
+            assert 0, "unreachable"
 
     start = reconciliation_end_date.replace(day=1).strftime(THE_FORMAT)
     end = (reconciliation_end_date + timedelta(days=1)).strftime(THE_FORMAT)
@@ -38,7 +43,7 @@ def main(reconciliation_end_date, hledger_csv_statement="/tmp/sep.csv", mbank_ht
 
         dump_hledger()
         with open(hledger_csv_statement) as f:
-            hledger_transactions = read_hledger_csv_transactions(f)
+            hledger_transactions = read_hledger_csv_transactions(f, bank)
             # TODO: assert all transations are the same currency as first transaction
 
         with open(mbank_html_statement) as f:
@@ -50,15 +55,15 @@ def main(reconciliation_end_date, hledger_csv_statement="/tmp/sep.csv", mbank_ht
             # TODO: assert all transactions have the same currency as first transaction
             # TODO: assert first transaction matches first hledger transaction
             # TODO: assert this assumption
-            mbank_transactions = [t for t in read_mbank_transactions(f) if t.accounting_date.month ==
+            mbank_transactions = [t for t in read_transactions(f) if t.accounting_date.month ==
                                   reconcilement_month]
 
         # TODO: clean this up
         def is_reconcilment(problem):
-            return len(problem.hledger_transactions) == 1 and len(problem.mbank_transactions) == 0 and next(iter(problem.hledger_transactions)).description == "Reconcilment mbank"
+            return len(problem.hledger_transactions) == 1 and len(problem.real_world_transactions) == 0 and next(iter(problem.hledger_transactions)).description == "Reconcilment mbank"
 
         def is_opening(problem):
-            return len(problem.hledger_transactions) == 1 and len(problem.mbank_transactions) == 0 and next(iter(problem.hledger_transactions)).description == "opening balances"
+            return len(problem.hledger_transactions) == 1 and len(problem.real_world_transactions) == 0 and next(iter(problem.hledger_transactions)).description == "opening balances"
 
         raw_unbalanced_matches = find_unbalanced_matches(mbank_transactions, hledger_transactions)
         unbalanced_matches = [p for p in raw_unbalanced_matches if not is_reconcilment(p) and not is_opening(p)]
@@ -91,7 +96,7 @@ def main(reconciliation_end_date, hledger_csv_statement="/tmp/sep.csv", mbank_ht
             print("Congrats, all reconciled!")
             exit(0)
 
-def display_problem(problem: TransactionsMatch):
+def display_problem(problem: MatchSet):
     if problem.contains_return:
         print("!!!! Likely a false-positive xD :: check your signs by the transaction")
         # TODO: actually mark the retrun I guess
@@ -102,40 +107,28 @@ def display_problem(problem: TransactionsMatch):
         print(t)
 
     print("=======================")
-    for t in problem.mbank_transactions:
+    for t in problem.real_world_transactions:
         print(t)
 
     print("---------  mbank  -------")
 
 # TODO: not sure if this belong in main...
-def find_unbalanced_matches(mbank_transactions: Sequence[MbankTransaction], hledger_transactions: Sequence[HledgerTransaction]):
-    # TODO: comments?
-    matches = defaultdict(TransactionsMatch)
-
-    for t in hledger_transactions:
-        matches[t.amount].hledger_transactions.add(t)
-
-    for t in mbank_transactions:
-        matches[t.amount].mbank_transactions.add(t)
-
-    matches = list(matches.values())
-    assert all(m.is_correct() for m in matches)
-
-    return [m for m in matches if not m.is_balanced]
 
 
 if __name__ == "__main__":
-    import argparse
-    import calendar
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "month",
         type=int,
         nargs="?",
         # targetting end of previous month
-        default=date.today().month - 1,
+        default=(date.today().month - 1) or 12,
         help="Month (1–12) to override the current month",
+    )
+    parser.add_argument(
+        "-b","--bank",
+        choices=["mbank", "revolut"],
+        default="mbank",
     )
 
     args = parser.parse_args()
@@ -149,4 +142,4 @@ if __name__ == "__main__":
     reconciliation_end_date = date(year, month, calendar.monthrange(year, month)[1])
 
     print("reconciliation end:", reconciliation_end_date)
-    main(reconciliation_end_date=reconciliation_end_date)
+    main(reconciliation_end_date=reconciliation_end_date, bank=args.bank)

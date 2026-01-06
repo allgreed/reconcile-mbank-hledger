@@ -40,13 +40,14 @@ def read_mbank_transactions(file: io.TextIOBase) -> Sequence[MbankTransaction]:
             amount=regexp_match[3].replace(",",".").replace(" ", ""),
             description=description,
             accounting_date=expense_origin_date or bank_date,
+            currency="PLN",
         )
 
     matches = re.findall(MAGIC_MBANK_STATEMENT_REGEXP, file.read().strip(), re.MULTILINE)
     return list(map(parse_mbank_chunk, *zip(*enumerate(matches))))
 
 
-def read_hledger_csv_transactions(file: io.TextIOBase) -> Sequence[HledgerTransaction]:
+def read_hledger_csv_transactions(file: io.TextIOBase, bank: str) -> Sequence[HledgerTransaction]:
     # TODO: also it's not *just* hledgerTransaction - it's MbankHledgerTransaction
     def parse_hledger_chunk(row: Dict[str, Any]) -> Optional[HledgerTransaction]:
         # TODO: have a debugger utility for this?
@@ -54,7 +55,8 @@ def read_hledger_csv_transactions(file: io.TextIOBase) -> Sequence[HledgerTransa
             #  print(row)
 
         # TODO: this is domain specific processing - move it where it belongs
-        if row["account"] == "assets:revolut":
+        target_account = "assets:revolut" if bank == "revolut" else "assets:mbank:main"
+        if row["account"] == target_account:
             if row["description"] == "Reconcilement":
                 return
 
