@@ -4,7 +4,7 @@ import subprocess
 from datetime import date, timedelta
 
 from core import MatchSet, find_unbalanced_matches
-from ports import read_hledger_csv_transactions, read_mbank_transactions, read_revolut_csv_transactions
+from ports import read_hledger_csv_transactions, read_mbank_transactions, read_revolut_csv_transactions, read_zkb_csv_transactions
 
 THE_FORMAT = "%Y-%m-%d"
 
@@ -20,7 +20,12 @@ def main(reconciliation_end_date, bank, hledger_csv_statement="/tmp/sep.csv"):
             mbank_html_statement="/home/allgreed/Downloads/bork.html"
         case "revolut":
             read_transactions = read_revolut_csv_transactions
+            # TODO: parametrize where the statements are
             mbank_html_statement = "/home/allgreed/Downloads/revo-2025.csv"
+        case "zkb":
+            read_transactions = read_zkb_csv_transactions
+            # TODO: parametrize where the statements are
+            mbank_html_statement = "/home/allgreed/Downloads/zkb-all.csv"
         case _:
             assert 0, "unreachable"
 
@@ -127,7 +132,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-b","--bank",
-        choices=["mbank", "revolut"],
+        choices=["mbank", "revolut", "zkb"],
         default="mbank",
     )
 

@@ -55,7 +55,11 @@ def read_hledger_csv_transactions(file: io.TextIOBase, bank: str) -> Sequence[Hl
             #  print(row)
 
         # TODO: this is domain specific processing - move it where it belongs
-        target_account = "assets:revolut" if bank == "revolut" else "assets:mbank:main"
+        target_account = {
+            "revolut": "assets:revolut",
+            "mbank": "assets:mbank:main",
+            "zkb": "assets:zkb",
+        }[bank]
         if row["account"] == target_account:
             if row["description"] == "Reconcilement":
                 return
@@ -105,3 +109,26 @@ def read_revolut_csv_transactions(file: io.TextIOBase) -> Sequence[Transaction]:
         )
 
     return list(map(parse_chunk, csv.DictReader(file)))
+
+
+def read_zkb_csv_transactions(file: io.TextIOBase) -> Sequence[Transaction]:
+    def parse_chunk(row: Dict[str, Any]) -> Transaction:
+        # yes, holy wtf, but I'm rolling with it ;d
+        # use today for transactions in flight
+        date1 = datetime.strptime(row['\ufeff"Date"'] or datetime.today().strftime("%d.%m.%Y"), "%d.%m.%Y")
+        #  date2 = row["Data zrealizowania"]
+        currency = row["Curr"] or "CHF"
+        assert currency == "CHF"
+        credit_chf = Decimal(row["Credit CHF"] or 0)
+        debit_chf = Decimal(row["Debit CHF"] or 0)
+        amount = credit_chf or -debit_chf
+
+        return Transaction(
+            nonce = mk_nonce(),
+            description=row["Booking text"],
+            amount=amount,
+            accounting_date=date1,
+            currency = currency,
+        )
+
+    return list(map(parse_chunk, csv.DictReader(file, delimiter=";")))
