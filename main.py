@@ -1,7 +1,7 @@
 import argparse
 import calendar
 import subprocess
-from datetime import date, timedelta
+from datetime import date
 
 from core import MatchSet, find_unbalanced_matches
 from ports import read_hledger_csv_transactions, read_mbank_transactions, read_revolut_csv_transactions, read_zkb_csv_transactions
