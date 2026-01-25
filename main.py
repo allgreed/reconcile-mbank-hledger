@@ -29,11 +29,11 @@ def main(reconciliation_end_date, bank, hledger_csv_statement="/tmp/sep.csv"):
         case _:
             assert 0, "unreachable"
 
-    start = reconciliation_end_date.replace(day=1).strftime(THE_FORMAT)
-    end = (reconciliation_end_date + timedelta(days=1)).strftime(THE_FORMAT)
+    start = reconciliation_end_date.replace(day=1)
+    end = (reconciliation_end_date)
     def dump_hledger():
         subprocess.run([
-            "hledger", "print", "-O", "csv", f"date:{start}-{end}",
+            "hledger", "print", "-O", "csv",
             # TODO: skip the temp file altogether -> I can just parse on the fly by pipes :D
             "-o", "/tmp/sep.csv",
             # TODO: automate this?
@@ -48,7 +48,7 @@ def main(reconciliation_end_date, bank, hledger_csv_statement="/tmp/sep.csv"):
 
         dump_hledger()
         with open(hledger_csv_statement) as f:
-            hledger_transactions = read_hledger_csv_transactions(f, bank)
+            hledger_transactions = list(filter(lambda t: start <= t.accounting_date <= end, read_hledger_csv_transactions(f, bank)))
             # TODO: assert all transations are the same currency as first transaction
 
         with open(mbank_html_statement) as f:

@@ -68,6 +68,11 @@ def read_hledger_csv_transactions(file: io.TextIOBase, bank: str) -> Sequence[Hl
             date2 = row["date2"]
             assert date2 == ""
 
+            if row["posting-comment"]:
+                _s = row["posting-comment"]
+                if re.search(r"date:\s?\d{4}/\d{2}/\d{2}", _s):
+                    date1 = datetime.strptime(_s.split("date:")[-1].strip(), "%Y/%m/%d")
+
             # TODO: display this error more gracefully
             # maybe introspect the pydantic errors?
             if len(row["description"]) < 3:
