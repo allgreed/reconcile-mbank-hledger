@@ -117,7 +117,7 @@ def read_revolut_csv_transactions(file: io.TextIOBase) -> Sequence[Transaction]:
 
 
 def read_zkb_csv_transactions(file: io.TextIOBase) -> Sequence[Transaction]:
-    def parse_chunk(row: Dict[str, Any]) -> Transaction:
+    def parse_chunk(row: Dict[str, Any]) -> Optional[Transaction]:
         # yes, holy wtf, but I'm rolling with it ;d
         # use today for transactions in flight
         date1 = datetime.strptime(row['\ufeff"Date"'] or datetime.today().strftime("%d.%m.%Y"), "%d.%m.%Y")
@@ -128,6 +128,11 @@ def read_zkb_csv_transactions(file: io.TextIOBase) -> Sequence[Transaction]:
         debit_chf = Decimal(row["Debit CHF"] or 0)
         amount = credit_chf or -debit_chf
 
+        # sometimes there are transaction like that -- "empty"
+        if amount == 0:
+            # let's ignore them
+            return None
+
         return Transaction(
             nonce = mk_nonce(),
             description=row["Booking text"],
@@ -136,4 +141,4 @@ def read_zkb_csv_transactions(file: io.TextIOBase) -> Sequence[Transaction]:
             currency = currency,
         )
 
-    return list(map(parse_chunk, csv.DictReader(file, delimiter=";")))
+    return list(filter(bool, map(parse_chunk, csv.DictReader(file, delimiter=";"))))
