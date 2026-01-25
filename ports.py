@@ -121,7 +121,7 @@ def read_zkb_csv_transactions(file: io.TextIOBase) -> Sequence[Transaction]:
         # yes, holy wtf, but I'm rolling with it ;d
         # use today for transactions in flight
         date1 = datetime.strptime(row['\ufeff"Date"'] or datetime.today().strftime("%d.%m.%Y"), "%d.%m.%Y")
-        #  date2 = row["Data zrealizowania"]
+        date2 = datetime.strptime(row['Value date'], "%d.%m.%Y") if row['Value date'] else None
         currency = row["Curr"] or "CHF"
         assert currency == "CHF"
         credit_chf = Decimal(row["Credit CHF"] or 0)
@@ -132,7 +132,7 @@ def read_zkb_csv_transactions(file: io.TextIOBase) -> Sequence[Transaction]:
             nonce = mk_nonce(),
             description=row["Booking text"],
             amount=amount,
-            accounting_date=date1,
+            accounting_date=date2 or date1,
             currency = currency,
         )
 
