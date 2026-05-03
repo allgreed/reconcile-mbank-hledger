@@ -21,7 +21,7 @@ def main(reconciliation_end_date, bank, hledger_csv_statement="/tmp/sep.csv"):
         case "revolut":
             read_transactions = read_revolut_csv_transactions
             # TODO: parametrize where the statements are
-            mbank_html_statement = "/home/allgreed/Downloads/revo-2025.csv"
+            mbank_html_statement = "/home/allgreed/Downloads/revo-2026.csv"
         case "zkb":
             read_transactions = read_zkb_csv_transactions
             # TODO: parametrize where the statements are
@@ -80,7 +80,7 @@ def main(reconciliation_end_date, bank, hledger_csv_statement="/tmp/sep.csv"):
         while unbalanced_matches:
             problem = unbalanced_matches[0]
 
-            display_problem(problem)
+            display_problem(problem, bank)
             # TODO: get problem hints -> like if I have a missing mbank/hledger entry, and there are complementary entries
 
             print(f"there are {len(unbalanced_matches) - 1} unsolved problems remaining!")
@@ -101,7 +101,7 @@ def main(reconciliation_end_date, bank, hledger_csv_statement="/tmp/sep.csv"):
             print("Congrats, all reconciled!")
             exit(0)
 
-def display_problem(problem: MatchSet):
+def display_problem(problem: MatchSet, bank):
     if problem.contains_return:
         print("!!!! Likely a false-positive xD :: check your signs by the transaction")
         # TODO: actually mark the retrun I guess
@@ -115,7 +115,7 @@ def display_problem(problem: MatchSet):
     for t in problem.real_world_transactions:
         print(t)
 
-    print("---------  mbank  -------")
+    print(f"---------  {bank}  -------")
 
 # TODO: not sure if this belong in main...
 
