@@ -9,6 +9,7 @@ let
 
   pythonPkgs = python-packages: with python-packages; [
     pydantic
+    typer
 
     # dev
     pytest

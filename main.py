@@ -33,10 +33,11 @@ def main(reconciliation_end_date, bank, hledger_csv_statement="/tmp/sep.csv"):
     end = (reconciliation_end_date)
     def dump_hledger():
         subprocess.run([
-            "hledger", "print", "-O", "csv",
+            "hledger", "print",
+            "-O", "csv",
             # TODO: skip the temp file altogether -> I can just parse on the fly by pipes :D
             "-o", "/tmp/sep.csv",
-            # TODO: automate this?
+            # TODO: automate this? edge case for previous year? o.0
             # "-f", "~/Documents/finance/old-journals/2024.journal",
         ])
 
@@ -48,8 +49,12 @@ def main(reconciliation_end_date, bank, hledger_csv_statement="/tmp/sep.csv"):
 
         dump_hledger()
         with open(hledger_csv_statement) as f:
-            hledger_transactions = list(filter(lambda t: start <= t.accounting_date <= end, read_hledger_csv_transactions(f, bank)))
+            _raw = list(filter(lambda t: start <= t.accounting_date <= end, read_hledger_csv_transactions(f, bank)))
             # TODO: assert all transations are the same currency as first transaction
+            # TODO: parametrize this!
+            #  hledger_transactions = list(filter(lambda t: t.currency == "CHF", _raw))
+            hledger_transactions = list(_raw)
+            
 
         with open(mbank_html_statement) as f:
             # mbank will contain slightly more data
@@ -121,6 +126,7 @@ def display_problem(problem: MatchSet, bank):
 
 
 if __name__ == "__main__":
+    # TODO: rewrite in typer
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "month",
@@ -134,6 +140,10 @@ if __name__ == "__main__":
         "-b","--bank",
         choices=["mbank", "revolut", "zkb"],
         default="mbank",
+    )
+    # TODO: handle this
+    parser.add_argument(
+        "-c","--currency",
     )
 
     args = parser.parse_args()
