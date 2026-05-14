@@ -1,8 +1,9 @@
-import argparse
 import calendar
 import subprocess
 from datetime import date
 from typing import assert_never
+
+import typer
 
 from core import MatchSet, find_unbalanced_matches
 from ports import read_hledger_csv_transactions, read_mbank_transactions, read_revolut_csv_transactions, read_zkb_csv_transactions
@@ -11,7 +12,24 @@ THE_FORMAT = "%Y-%m-%d"
 
 # TODO: refactor to Path
 # TODO: use periods instead of end dates
-def main(reconciliation_end_date, bank, hledger_csv_statement="/tmp/sep.csv"):
+def main(
+    month_to_reconcile: int | None = typer.Argument(
+        None,
+        min=1,
+        max=12,
+        help="Month to reconcile (1-12). Defaults to the previous month.",
+        ),bank: str = "mbank", currency: str | None = None, hledger_csv_statement="/tmp/sep.csv"):
+    #  choices=["mbank", "revolut", "zkb"],
+
+    today = date.today()
+    # default: previous month with a wraparound for December
+    month = month_to_reconcile or ((today.month - 1) or 12)
+
+    likely_reconciling_previous_year = today.month == 1
+    year = today.year - (1 if likely_reconciling_previous_year else 0)
+
+    reconciliation_end_date = date(year, month, calendar.monthrange(year, month)[1])
+    print("reconciliation end:", reconciliation_end_date)
     reconcilement_month = reconciliation_end_date.month
 
     # TODO: use enum! (or maybe even some refactorign pattern!)
@@ -47,9 +65,8 @@ def main(reconciliation_end_date, bank, hledger_csv_statement="/tmp/sep.csv"):
         dump_hledger()
         with open(hledger_csv_statement) as f:
             _raw = list(filter(lambda t: start <= t.accounting_date <= end, read_hledger_csv_transactions(f, bank)))
-            # TODO: assert all transations are the same currency as first transaction
-            # TODO: parametrize this!
-            #  hledger_transactions = list(filter(lambda t: t.currency == "CHF", _raw))
+            if currency:
+                hledger_transactions = list(filter(lambda t: t.currency == currency, _raw))
             hledger_transactions = list(_raw)
             
 
@@ -120,40 +137,8 @@ def display_problem(problem: MatchSet, bank):
         print(t)
 
     print(f"---------  {bank}  -------")
-
 # TODO: not sure if this belong in main...
 
 
 if __name__ == "__main__":
-    # TODO: rewrite in typer
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "month",
-        type=int,
-        nargs="?",
-        # targetting end of previous month
-        default=(date.today().month - 1) or 12,
-        help="Month (1–12) to override the current month",
-    )
-    parser.add_argument(
-        "-b","--bank",
-        choices=["mbank", "revolut", "zkb"],
-        default="mbank",
-    )
-    # TODO: handle this
-    parser.add_argument(
-        "-c","--currency",
-    )
-
-    args = parser.parse_args()
-
-    today = date.today()
-    month = args.month
-
-    likely_reconciling_previous_year = today.month == 1
-    year = today.year - (1 if likely_reconciling_previous_year else 0)
-
-    reconciliation_end_date = date(year, month, calendar.monthrange(year, month)[1])
-
-    print("reconciliation end:", reconciliation_end_date)
-    main(reconciliation_end_date=reconciliation_end_date, bank=args.bank)
+    typer.run(main)
