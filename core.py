@@ -13,7 +13,7 @@ Currency = NewType("Currency", constr(min_length=1))
 @dataclass(frozen=True)
 class Transaction:
     amount: Decimal
-    description: constr(min_length=3)
+    description: constr(min_length=1)
     accounting_date: date
     currency: Currency
     # sometimes you have 2 transactions with the same parameters
