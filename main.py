@@ -2,6 +2,7 @@ import argparse
 import calendar
 import subprocess
 from datetime import date
+from typing import assert_never
 
 from core import MatchSet, find_unbalanced_matches
 from ports import read_hledger_csv_transactions, read_mbank_transactions, read_revolut_csv_transactions, read_zkb_csv_transactions
@@ -13,21 +14,19 @@ THE_FORMAT = "%Y-%m-%d"
 def main(reconciliation_end_date, bank, hledger_csv_statement="/tmp/sep.csv"):
     reconcilement_month = reconciliation_end_date.month
 
-    # TODO: exhaustive matcher -- is possible?
+    # TODO: use enum! (or maybe even some refactorign pattern!)
     match bank:
         case "mbank":
             read_transactions = read_mbank_transactions
-            mbank_html_statement="/home/allgreed/Downloads/bork.html"
+            bank_source_statement="/home/allgreed/Downloads/bork.html"
         case "revolut":
             read_transactions = read_revolut_csv_transactions
-            # TODO: parametrize where the statements are
-            mbank_html_statement = "/home/allgreed/Downloads/revo-2026.csv"
+            bank_source_statement = "/home/allgreed/Downloads/revo.csv"
         case "zkb":
             read_transactions = read_zkb_csv_transactions
-            # TODO: parametrize where the statements are
-            mbank_html_statement = "/home/allgreed/Downloads/zkb-all.csv"
+            bank_source_statement = "/home/allgreed/Downloads/zkb.csv"
         case _:
-            assert 0, "unreachable"
+            assert_never(bank)
 
     start = reconciliation_end_date.replace(day=1)
     end = (reconciliation_end_date)
@@ -37,8 +36,6 @@ def main(reconciliation_end_date, bank, hledger_csv_statement="/tmp/sep.csv"):
             "-O", "csv",
             # TODO: skip the temp file altogether -> I can just parse on the fly by pipes :D
             "-o", "/tmp/sep.csv",
-            # TODO: automate this? edge case for previous year? o.0
-            # "-f", "~/Documents/finance/old-journals/2024.journal",
         ])
 
 
@@ -56,7 +53,9 @@ def main(reconciliation_end_date, bank, hledger_csv_statement="/tmp/sep.csv"):
             hledger_transactions = list(_raw)
             
 
-        with open(mbank_html_statement) as f:
+        with open(bank_source_statement) as f:
+            # TODO: parametrize where the statements are -- if there isn't a default file use a picker!
+
             # mbank will contain slightly more data
             # assuumption: export at least +2 days to get all the debit carts settlemetns!
             # TODO: code it!

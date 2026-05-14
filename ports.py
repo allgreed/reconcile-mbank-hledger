@@ -60,6 +60,7 @@ def read_hledger_csv_transactions(file: io.TextIOBase, bank: str) -> Sequence[Hl
             "mbank": "assets:mbank:main",
             "zkb": "assets:zkb",
         }[bank]
+        # TODO: this is domain specific processing - move it where it belongs
         if row["account"] == target_account:
             if row["description"] == "Reconcilement":
                 return
